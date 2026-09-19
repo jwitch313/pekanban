@@ -41,6 +41,8 @@ class MainWindow(QMainWindow):
 
         self._sidebar.board_selected.connect(self._on_board_selected)
         self._sidebar.board_added.connect(self._on_board_added)
+        self._sidebar.board_renamed.connect(self._on_board_renamed)
+        self._sidebar.board_deleted.connect(self._on_board_deleted)
         self._board_view.column_added.connect(self._on_column_added)
         self._board_view.column_renamed.connect(self._on_column_renamed)
         self._board_view.column_moved.connect(self._on_column_moved)
@@ -83,6 +85,24 @@ class MainWindow(QMainWindow):
         """Create a new board and switch to it."""
         board = self._service.create_board(name)
         self._current_board_id = board.id
+        self._refresh_sidebar()
+        self._load_current_board()
+
+    def _on_board_renamed(self, board_id: int, name: str) -> None:
+        """Rename a board and refresh the sidebar."""
+        self._service.rename_board(board_id, name)
+        self._refresh_sidebar()
+
+    def _on_board_deleted(self, board_id: int) -> None:
+        """Delete a board, switching to another board if it was the current one."""
+        self._service.delete_board(board_id)
+        if board_id == self._current_board_id:
+            self._current_board_id = None
+            boards = self._service.list_boards()
+            if boards:
+                self._current_board_id = boards[0].id
+            else:
+                self._current_board_id = self._service.create_board("My Board").id
         self._refresh_sidebar()
         self._load_current_board()
 

@@ -269,3 +269,78 @@ def test_window_delete_column(window: MainWindow) -> None:
     board = window._service.get_board_full(board_id)
     assert board is not None
     assert [c.title for c in board.columns] == ["To Do"]
+
+
+# -- Board controls (rename / delete) -------------------------------------
+def test_sidebar_rename_emits_signal(qapp) -> None:
+    from kanban.models import Board
+    from kanban.ui.sidebar import Sidebar
+
+    sidebar = Sidebar()
+    captured: list[tuple[int, str]] = []
+    sidebar.board_renamed.connect(lambda *a: captured.append(a))
+    sidebar.load_boards([Board(id=1, name="A"), Board(id=2, name="B")])
+    sidebar._list.setCurrentRow(0)
+    item = sidebar._list.currentItem()
+    assert item is not None
+    sidebar._start_rename()
+    item.setText("Renamed")
+    assert captured == [(1, "Renamed")]
+
+
+def test_sidebar_rename_blank_is_ignored(qapp) -> None:
+    from kanban.models import Board
+    from kanban.ui.sidebar import Sidebar
+
+    sidebar = Sidebar()
+    captured: list[tuple[int, str]] = []
+    sidebar.board_renamed.connect(lambda *a: captured.append(a))
+    sidebar.load_boards([Board(id=1, name="A")])
+    sidebar._list.setCurrentRow(0)
+    item = sidebar._list.currentItem()
+    assert item is not None
+    sidebar._start_rename()
+    item.setText("   ")
+    assert captured == []
+
+
+def test_sidebar_delete_emits_signal(qapp) -> None:
+    from kanban.models import Board
+    from kanban.ui.sidebar import Sidebar
+
+    sidebar = Sidebar()
+    captured: list[int] = []
+    sidebar.board_deleted.connect(lambda v: captured.append(v))
+    sidebar.load_boards([Board(id=1, name="A"), Board(id=2, name="B")])
+    sidebar._list.setCurrentRow(1)
+    sidebar._delete_board()
+    assert captured == [2]
+
+
+def test_window_rename_board(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    window._on_board_renamed(board_id, "Renamed Board")
+    board = window._service.get_board(board_id)
+    assert board is not None
+    assert board.name == "Renamed Board"
+
+
+def test_window_delete_board_switches_to_remaining(window: MainWindow) -> None:
+    window._on_board_added("Second")
+    first_id = window._current_board_id
+    assert first_id is not None
+    window._on_board_deleted(first_id)
+    assert window._current_board_id != first_id
+    assert len(window._service.list_boards()) == 1
+
+
+def test_window_delete_last_board_creates_default(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    window._on_board_deleted(board_id)
+    assert window._current_board_id is not None
+    boards = window._service.list_boards()
+    assert len(boards) == 1
+    assert boards[0].name == "My Board"
+    assert window._current_board_id == boards[0].id
