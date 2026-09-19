@@ -22,6 +22,12 @@ from PySide6.QtWidgets import (
 from kanban.models import Board, Priority
 from kanban.services.database import Database, create_database
 from kanban.services.task_service import TaskService
+from kanban.services.undo_redo import (
+    CreateTaskCommand,
+    DeleteTaskCommand,
+    MoveTaskCommand,
+    UndoRedoService,
+)
 from kanban.ui.board_view import BoardView
 from kanban.ui.search_bar import Filters, SearchBar
 from kanban.ui.sidebar import Sidebar
@@ -35,6 +41,7 @@ class MainWindow(QMainWindow):
         self._database = database if database is not None else create_database()
         self._database.init_db()
         self._service = TaskService(self._database)
+        self._undo = UndoRedoService(self._service)
         self._current_board_id: int | None = None
         self._filters: Filters = {}
 
@@ -213,18 +220,18 @@ class MainWindow(QMainWindow):
         self._load_current_board()
 
     def _on_task_added(self, column_id: int, title: str) -> None:
-        """Add a task to a column and refresh."""
-        self._service.create_task(column_id, title)
+        """Add a task to a column and refresh (undoable)."""
+        self._undo.execute(CreateTaskCommand(self._service, column_id, title))
         self._load_current_board()
 
     def _on_task_deleted(self, task_id: int) -> None:
-        """Delete a task and refresh."""
-        self._service.delete_task(task_id)
+        """Delete a task and refresh (undoable)."""
+        self._undo.execute(DeleteTaskCommand(self._service, task_id))
         self._load_current_board()
 
     def _on_task_moved(self, task_id: int, column_id: int, index: int) -> None:
         """Move a task to a new column/position (drag-and-drop) and refresh."""
-        self._service.move_task(task_id, column_id, index)
+        self._undo.execute(MoveTaskCommand(self._service, task_id, column_id, index))
         self._load_current_board()
 
     def _on_label_added(self, name: str, color: str) -> None:
@@ -269,7 +276,13 @@ class MainWindow(QMainWindow):
         cancel = QShortcut(QKeySequence("Esc"), self)
         cancel.activated.connect(self._shortcut_cancel)
 
-        self._shortcuts = [new_column, new_task, cancel]
+        undo = QShortcut(QKeySequence("Ctrl+Z"), self)
+        undo.activated.connect(self._shortcut_undo)
+
+        redo = QShortcut(QKeySequence("Ctrl+Y"), self)
+        redo.activated.connect(self._shortcut_redo)
+
+        self._shortcuts = [new_column, new_task, cancel, undo, redo]
 
     def _shortcut_new_column(self) -> None:
         """Focus the inline add-column field."""
@@ -284,6 +297,18 @@ class MainWindow(QMainWindow):
         focus = QApplication.focusWidget()
         if isinstance(focus, QLineEdit):
             focus.clear()
+
+    def _shortcut_undo(self) -> None:
+        """Undo the most recent task action and refresh the board."""
+        if self._undo.can_undo():
+            self._undo.undo()
+            self._load_current_board()
+
+    def _shortcut_redo(self) -> None:
+        """Redo the most recently undone task action and refresh the board."""
+        if self._undo.can_redo():
+            self._undo.redo()
+            self._load_current_board()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt naming
         """Dispose of the database engine when the window closes."""
