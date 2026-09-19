@@ -1,0 +1,62 @@
+"""Tests for the light/dark theme module (Step 4, Slice 3)."""
+
+from __future__ import annotations
+
+import os
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+import pytest
+from PySide6.QtWidgets import QApplication
+
+from kanban.ui.theme import (
+    DARK_QSS,
+    LIGHT_QSS,
+    ThemeMode,
+    apply_theme,
+    detect_system_theme,
+    theme_from_apps_use_light,
+)
+
+
+@pytest.fixture(scope="session")
+def qapp() -> QApplication:
+    """Provide a single offscreen QApplication for the whole session."""
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    yield app
+
+
+def test_theme_from_apps_use_light_light() -> None:
+    assert theme_from_apps_use_light(1) is ThemeMode.LIGHT
+
+
+def test_theme_from_apps_use_light_dark() -> None:
+    assert theme_from_apps_use_light(0) is ThemeMode.DARK
+
+
+def test_theme_from_apps_use_light_missing_defaults_light() -> None:
+    assert theme_from_apps_use_light(None) is ThemeMode.LIGHT
+
+
+def test_detect_system_theme_returns_valid_mode() -> None:
+    assert detect_system_theme() in {ThemeMode.LIGHT, ThemeMode.DARK}
+
+
+def test_apply_theme_dark(qapp: QApplication) -> None:
+    apply_theme(qapp, ThemeMode.DARK)
+    assert qapp.styleSheet() == DARK_QSS
+
+
+def test_apply_theme_light(qapp: QApplication) -> None:
+    apply_theme(qapp, ThemeMode.LIGHT)
+    assert qapp.styleSheet() == LIGHT_QSS
+
+
+def test_stylesheets_are_nonempty_and_cover_key_widgets() -> None:
+    for qss in (LIGHT_QSS, DARK_QSS):
+        assert qss.strip()
+        assert "QMainWindow" in qss
+        assert "QPushButton" in qss
+        assert "QLineEdit" in qss

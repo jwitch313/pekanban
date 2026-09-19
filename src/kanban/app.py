@@ -8,9 +8,11 @@ def main() -> int:
     from PySide6.QtWidgets import QApplication
 
     from kanban.main_window import MainWindow
+    from kanban.ui.theme import apply_theme, detect_system_theme
 
     app = QApplication([])
     app.setApplicationName("KanBan")
+    apply_theme(app, detect_system_theme())
     window = MainWindow()
     window.show()
     return app.exec()
