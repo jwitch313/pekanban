@@ -188,6 +188,10 @@ class ColumnWidget(QFrame):
         self.task_added.emit(self._column_id, title)
         self._add_edit.clear()
 
+    def focus_add_task(self) -> None:
+        """Give keyboard focus to the inline add-task field."""
+        self._add_edit.setFocus()
+
     # -- Drop target ------------------------------------------------------
     def _drop_index_at(self, pos: QPoint) -> int:
         """Return the card index a drop at ``pos`` (local coords) should insert at.

@@ -110,3 +110,17 @@ class BoardView(QScrollArea):
             self.add_column_widget(
                 ColumnWidget(column.id, column.title, tasks, index, board_labels=board_labels)
             )
+
+    def focus_add_column(self) -> None:
+        """Give keyboard focus to the inline add-column field."""
+        self._column_edit.setFocus()
+
+    def focus_first_task_input(self) -> bool:
+        """Focus the first column's add-task field. Returns True if one exists."""
+        for i in range(self._column_layout.count()):
+            item = self._column_layout.itemAt(i)
+            widget = item.widget() if item is not None else None
+            if isinstance(widget, ColumnWidget):
+                widget.focus_add_task()
+                return True
+        return False

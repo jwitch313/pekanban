@@ -6,7 +6,6 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-import pytest
 from PySide6.QtWidgets import QApplication
 
 from kanban.ui.theme import (
@@ -17,15 +16,6 @@ from kanban.ui.theme import (
     detect_system_theme,
     theme_from_apps_use_light,
 )
-
-
-@pytest.fixture(scope="session")
-def qapp() -> QApplication:
-    """Provide a single offscreen QApplication for the whole session."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    yield app
 
 
 def test_theme_from_apps_use_light_light() -> None:

@@ -9,8 +9,15 @@ from __future__ import annotations
 from datetime import date
 from typing import cast
 
-from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLineEdit,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+)
 
 from kanban.models import Board, Priority
 from kanban.services.database import Database, create_database
@@ -69,6 +76,8 @@ class MainWindow(QMainWindow):
         self._board_view.label_assign_requested.connect(self._on_label_assigned)
         self._board_view.label_unassign_requested.connect(self._on_label_unassigned)
         self._search_bar.filters_changed.connect(self._apply_filters)
+
+        self._setup_shortcuts()
 
         self._refresh_sidebar()
         self._ensure_default_board()
@@ -243,6 +252,38 @@ class MainWindow(QMainWindow):
         """Clear the active filters and reset the search bar (no re-render)."""
         self._filters = {}
         self._search_bar.reset()
+
+    # -- Keyboard shortcuts ----------------------------------------------
+    def _setup_shortcuts(self) -> None:
+        """Register application-wide keyboard shortcuts.
+
+        ``Ctrl+N`` focuses the add-column field, ``Ctrl+T`` focuses the first
+        column's add-task field, and ``Esc`` clears the focused inline edit.
+        """
+        new_column = QShortcut(QKeySequence("Ctrl+N"), self)
+        new_column.activated.connect(self._shortcut_new_column)
+
+        new_task = QShortcut(QKeySequence("Ctrl+T"), self)
+        new_task.activated.connect(self._shortcut_new_task)
+
+        cancel = QShortcut(QKeySequence("Esc"), self)
+        cancel.activated.connect(self._shortcut_cancel)
+
+        self._shortcuts = [new_column, new_task, cancel]
+
+    def _shortcut_new_column(self) -> None:
+        """Focus the inline add-column field."""
+        self._board_view.focus_add_column()
+
+    def _shortcut_new_task(self) -> None:
+        """Focus the first column's inline add-task field."""
+        self._board_view.focus_first_task_input()
+
+    def _shortcut_cancel(self) -> None:
+        """Clear the currently focused inline edit field, if any."""
+        focus = QApplication.focusWidget()
+        if isinstance(focus, QLineEdit):
+            focus.clear()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt naming
         """Dispose of the database engine when the window closes."""

@@ -8,36 +8,14 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from datetime import date, timedelta
 
-import pytest
 from PySide6.QtCore import QMimeData, QPoint, Qt
 from PySide6.QtGui import QDropEvent
-from PySide6.QtWidgets import QApplication
 
 from kanban.main_window import MainWindow
 from kanban.models import Priority
-from kanban.services.database import create_database
 from kanban.ui.board_view import BoardView
 from kanban.ui.card_widget import KANBAN_TASK_MIME, PRIORITY_COLORS, CardWidget
 from kanban.ui.column_widget import ColumnWidget
-
-
-@pytest.fixture(scope="session")
-def qapp() -> QApplication:
-    """Provide a single offscreen QApplication for the whole session."""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    yield app
-
-
-@pytest.fixture
-def window(qapp, tmp_path) -> MainWindow:
-    """Provide a main window backed by a throwaway database."""
-    db = create_database(tmp_path / "ui.db")
-    win = MainWindow(database=db)
-    yield win
-    win.close()
-    db.dispose()
 
 
 def test_default_board_created(window: MainWindow) -> None:
