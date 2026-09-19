@@ -210,3 +210,94 @@ def test_import_json_missing_file_raises(tmp_path) -> None:
     service = ImportExportService(create_database(tmp_path / "x.db"))
     with pytest.raises(FileNotFoundError):
         service.import_json(tmp_path / "does_not_exist.json")
+
+
+# -- CSV ------------------------------------------------------------------
+def test_export_csv_rows(
+    service: ImportExportService, tasks: TaskService, tmp_path
+) -> None:
+    _board, _column, _label, _task = _build_sample(tasks)
+    out = tmp_path / "export.csv"
+    service.export_csv(out)
+    lines = out.read_text(encoding="utf-8").strip().splitlines()
+    expected_header = (
+        "board,column,title,description,priority,due_date,status_color,completed,labels"
+    )
+    assert lines[0] == expected_header
+    assert len(lines) == 2
+    assert "Fix crash" in lines[1]
+    assert "high" in lines[1]
+    assert "2025-06-01" in lines[1]
+    assert "Bug" in lines[1]
+
+
+def test_csv_round_trip(service: ImportExportService, tasks: TaskService, tmp_path) -> None:
+    _board, _column, _label, _task = _build_sample(tasks)
+    out = tmp_path / "export.csv"
+    service.export_csv(out)
+
+    fresh = create_database(tmp_path / "fresh.db")
+    fresh.init_db()
+    try:
+        ImportExportService(fresh).import_csv(out)
+        restored = TaskService(fresh).get_board_full(1)
+        assert restored is not None
+        assert restored.name == "Work"
+        task = restored.columns[0].tasks[0]
+        assert task.title == "Fix crash"
+        assert task.priority is Priority.HIGH
+        assert task.due_date == date(2025, 6, 1)
+        assert [label.name for label in task.labels] == ["Bug"]
+    finally:
+        fresh.dispose()
+
+
+def test_import_csv_find_or_create(service: ImportExportService, tmp_path) -> None:
+    csv_text = (
+        "board,column,title,description,priority,due_date,status_color,completed,labels\n"
+        "Sales,Outreach,Call client,,high,2025-07-01,,true,Hot;VIP\n"
+        "Sales,Outreach,Send follow-up,,low,,,false,\n"
+    )
+    src = tmp_path / "in.csv"
+    src.write_text(csv_text, encoding="utf-8")
+
+    service.import_csv(src)
+    board = TaskService(service._db).get_board_full(1)
+    assert board is not None
+    assert board.name == "Sales"
+    assert len(board.columns) == 1
+    assert board.columns[0].title == "Outreach"
+    assert len(board.columns[0].tasks) == 2
+    first = board.columns[0].tasks[0]
+    assert first.completed is True
+    assert [label.name for label in first.labels] == ["Hot", "VIP"]
+    assert [label.name for label in board.labels] == ["Hot", "VIP"]
+
+
+def test_import_csv_skips_rows_without_title(service: ImportExportService, tmp_path) -> None:
+    csv_text = (
+        "board,column,title,description,priority,due_date,status_color,completed,labels\n"
+        "B,C,,desc,medium,,,,\n"
+        "B,C,Real task,,medium,,,,\n"
+    )
+    src = tmp_path / "in.csv"
+    src.write_text(csv_text, encoding="utf-8")
+    service.import_csv(src)
+    board = TaskService(service._db).get_board_full(1)
+    assert board is not None
+    assert [t.title for t in board.columns[0].tasks] == ["Real task"]
+
+
+def test_import_csv_invalid_priority_and_date(service: ImportExportService, tmp_path) -> None:
+    csv_text = (
+        "board,column,title,description,priority,due_date,status_color,completed,labels\n"
+        "B,C,Task,,bogus,not-a-date,,,\n"
+    )
+    src = tmp_path / "in.csv"
+    src.write_text(csv_text, encoding="utf-8")
+    service.import_csv(src)
+    board = TaskService(service._db).get_board_full(1)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+    assert task.priority is Priority.MEDIUM
+    assert task.due_date is None

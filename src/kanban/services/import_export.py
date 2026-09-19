@@ -11,17 +11,32 @@ can be handled with forward-compatible readers.
 
 from __future__ import annotations
 
+import csv
 import json
 from datetime import date
 from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from kanban.models import Board, BoardColumn, Label, Priority, Task
 from kanban.services.database import Database
 
 SCHEMA_VERSION = 1
+
+#: Column order for CSV export/import. ``labels`` are joined with ``;``.
+CSV_HEADER = [
+    "board",
+    "column",
+    "title",
+    "description",
+    "priority",
+    "due_date",
+    "status_color",
+    "completed",
+    "labels",
+]
 
 
 class ImportExportService:
@@ -187,3 +202,117 @@ class ImportExportService:
         if not isinstance(data, dict):
             raise ValueError("Invalid JSON backup: expected a top-level object")
         self.deserialize(data)
+
+    # -- CSV --------------------------------------------------------------
+    def export_csv(self, path: str | Path) -> Path:
+        """Write every task as a flat CSV row to ``path`` and return the path.
+
+        Each row carries its board and column names so the file is self-
+        describing; labels are joined with ``;``.
+        """
+        payload = self.serialize()
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=CSV_HEADER)
+            writer.writeheader()
+            for board_data in payload["boards"]:
+                for column_data in board_data["columns"]:
+                    for task_data in column_data["tasks"]:
+                        writer.writerow(
+                            {
+                                "board": board_data["name"],
+                                "column": column_data["title"],
+                                "title": task_data["title"],
+                                "description": task_data["description"] or "",
+                                "priority": task_data["priority"],
+                                "due_date": task_data["due_date"] or "",
+                                "status_color": task_data["status_color"] or "",
+                                "completed": "true" if task_data["completed"] else "false",
+                                "labels": ";".join(task_data["labels"]),
+                            }
+                        )
+        return target
+
+    def import_csv(self, path: str | Path) -> None:
+        """Read a CSV file and import its rows into the database.
+
+        Boards, columns, and labels are matched by name and created on demand
+        (find-or-create), so a CSV can be imported into an empty or existing
+        database. Rows without a title are skipped.
+        """
+        source = Path(path)
+        with source.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle)
+            rows = list(reader)
+
+        with self._db.session() as session:
+            for row in rows:
+                title = (row.get("title") or "").strip()
+                if not title:
+                    continue
+                board = self._find_or_create_board(session, row.get("board"))
+                column = self._find_or_create_column(session, board, row.get("column"))
+                task = Task(
+                    title=title,
+                    description=(row.get("description") or "").strip() or None,
+                    priority=self._parse_priority(row.get("priority")),
+                    due_date=self._parse_date(row.get("due_date")),
+                    status_color=(row.get("status_color") or "").strip() or None,
+                    completed=self._parse_bool(row.get("completed")),
+                    order_idx=len(column.tasks),
+                )
+                column.tasks.append(task)
+                session.add(task)
+                session.flush()
+                for label_name in self._split_labels(row.get("labels")):
+                    task.labels.append(self._find_or_create_label(session, board, label_name))
+
+    @staticmethod
+    def _find_or_create_board(session: Session, name: Any) -> Board:
+        """Return the board with the given name, creating it if absent."""
+        board_name = (name or "").strip() or "Untitled"
+        board = session.execute(select(Board).where(Board.name == board_name)).scalar_one_or_none()
+        if board is None:
+            board = Board(name=board_name)
+            session.add(board)
+            session.flush()
+        return board
+
+    @staticmethod
+    def _find_or_create_column(session: Session, board: Board, title: Any) -> BoardColumn:
+        """Return the board's column with the given title, creating it if absent."""
+        column_title = (title or "").strip() or "Column"
+        for column in board.columns:
+            if column.title == column_title:
+                return column
+        column = BoardColumn(title=column_title, order_idx=len(board.columns))
+        board.columns.append(column)
+        session.add(column)
+        session.flush()
+        return column
+
+    @staticmethod
+    def _find_or_create_label(session: Session, board: Board, name: str) -> Label:
+        """Return the board's label with the given name, creating it if absent."""
+        for label in board.labels:
+            if label.name == name:
+                return label
+        label = Label(name=name, board_id=board.id)
+        session.add(label)
+        session.flush()
+        return label
+
+    @staticmethod
+    def _parse_bool(value: Any) -> bool:
+        """Coerce a CSV boolean cell to a Python bool."""
+        if value is None:
+            return False
+        return str(value).strip().lower() in {"1", "true", "yes", "y", "t"}
+
+    @staticmethod
+    def _split_labels(value: Any) -> list[str]:
+        """Split a ``;``-joined label cell into a clean list of names."""
+        if value is None:
+            return []
+        return [part.strip() for part in str(value).split(";") if part.strip()]
