@@ -21,6 +21,9 @@ class BoardView(QScrollArea):
     """Displays the columns and cards of the currently selected board."""
 
     column_added = Signal(str)  # title
+    column_renamed = Signal(int, str)  # column_id, new_title
+    column_moved = Signal(int, int)  # column_id, new_index
+    column_deleted = Signal(int)  # column_id
     task_added = Signal(int, str)  # column_id, title
     task_deleted = Signal(int)  # task_id
     task_moved = Signal(int, int, int)  # task_id, target_column_id, index
@@ -80,11 +83,14 @@ class BoardView(QScrollArea):
         column.task_added.connect(self.task_added)
         column.task_deleted.connect(self.task_deleted)
         column.task_moved.connect(self.task_moved)
+        column.column_renamed.connect(self.column_renamed)
+        column.column_moved.connect(self.column_moved)
+        column.column_deleted.connect(self.column_deleted)
         self._column_layout.insertWidget(self._column_layout.count() - 1, column)
 
     def load_board(self, board: Board) -> None:
         """Rebuild the view from a fully-loaded board object."""
         self.clear_columns()
-        for column in board.columns:
+        for index, column in enumerate(board.columns):
             tasks = [(task.id, task.title, task.priority, task.due_date) for task in column.tasks]
-            self.add_column_widget(ColumnWidget(column.id, column.title, tasks))
+            self.add_column_widget(ColumnWidget(column.id, column.title, tasks, index))

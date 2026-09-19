@@ -42,6 +42,9 @@ class MainWindow(QMainWindow):
         self._sidebar.board_selected.connect(self._on_board_selected)
         self._sidebar.board_added.connect(self._on_board_added)
         self._board_view.column_added.connect(self._on_column_added)
+        self._board_view.column_renamed.connect(self._on_column_renamed)
+        self._board_view.column_moved.connect(self._on_column_moved)
+        self._board_view.column_deleted.connect(self._on_column_deleted)
         self._board_view.task_added.connect(self._on_task_added)
         self._board_view.task_deleted.connect(self._on_task_deleted)
         self._board_view.task_moved.connect(self._on_task_moved)
@@ -88,6 +91,21 @@ class MainWindow(QMainWindow):
         if self._current_board_id is not None:
             self._service.create_column(self._current_board_id, title)
             self._load_current_board()
+
+    def _on_column_renamed(self, column_id: int, title: str) -> None:
+        """Rename a column and refresh."""
+        self._service.rename_column(column_id, title)
+        self._load_current_board()
+
+    def _on_column_moved(self, column_id: int, index: int) -> None:
+        """Move a column to a new position and refresh."""
+        self._service.move_column(column_id, index)
+        self._load_current_board()
+
+    def _on_column_deleted(self, column_id: int) -> None:
+        """Delete a column and refresh."""
+        self._service.delete_column(column_id)
+        self._load_current_board()
 
     def _on_task_added(self, column_id: int, title: str) -> None:
         """Add a task to a column and refresh."""

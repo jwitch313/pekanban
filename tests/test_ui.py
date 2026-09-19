@@ -162,3 +162,110 @@ def test_board_view_reflects_columns(window: MainWindow) -> None:
 
     columns = list(container.findChildren(ColumnWidget))
     assert len(columns) == len(board.columns)
+
+
+# -- Column controls (rename / move / delete) -----------------------------
+def test_column_rename_emits_signal(qapp) -> None:
+    column = ColumnWidget(5, "To Do", [], index=0)
+    captured: list[tuple[int, str]] = []
+    column.column_renamed.connect(lambda *a: captured.append(a))
+
+    column._start_rename()
+    assert not column._rename_edit.isHidden()
+    column._rename_edit.setText("Backlog")
+    column._commit_rename()
+
+    assert captured == [(5, "Backlog")]
+    assert column._title_label.text() == "Backlog"
+    assert column._rename_edit.isHidden()
+
+
+def test_column_rename_blank_is_ignored(qapp) -> None:
+    column = ColumnWidget(5, "To Do", [], index=0)
+    captured: list[tuple[int, str]] = []
+    column.column_renamed.connect(lambda *a: captured.append(a))
+
+    column._start_rename()
+    column._rename_edit.setText("   ")
+    column._commit_rename()
+
+    assert captured == []
+    assert column._title_label.text() == "To Do"
+
+
+def test_column_move_buttons_emit_index(qapp) -> None:
+    column = ColumnWidget(5, "To Do", [], index=2)
+    captured: list[tuple[int, int]] = []
+    column.column_moved.connect(lambda *a: captured.append(a))
+
+    column._move_left()
+    column._move_right()
+    assert captured == [(5, 1), (5, 3)]
+
+
+def test_column_delete_emits_signal(qapp) -> None:
+    column = ColumnWidget(5, "To Do", [], index=0)
+    captured: list[int] = []
+    column.column_deleted.connect(lambda v: captured.append(v))
+
+    column._delete_column()
+    assert captured == [5]
+
+
+def test_board_view_forwards_column_signals(qapp) -> None:
+    view = BoardView()
+    renamed: list[tuple[int, str]] = []
+    moved: list[tuple[int, int]] = []
+    deleted: list[int] = []
+    view.column_renamed.connect(lambda *a: renamed.append(a))
+    view.column_moved.connect(lambda *a: moved.append(a))
+    view.column_deleted.connect(lambda v: deleted.append(v))
+
+    column = ColumnWidget(9, "To Do", [], index=0)
+    view.add_column_widget(column)
+    column.column_renamed.emit(9, "New")
+    column.column_moved.emit(9, 1)
+    column.column_deleted.emit(9)
+
+    assert renamed == [(9, "New")]
+    assert moved == [(9, 1)]
+    assert deleted == [9]
+
+
+def test_window_rename_column(window: MainWindow) -> None:
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_column_renamed(column.id, "Backlog")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    assert board.columns[0].title == "Backlog"
+
+
+def test_window_move_column(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    window._on_column_added("B")
+    window._on_column_added("C")
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    first = board.columns[0]
+
+    window._on_column_moved(first.id, 2)
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    assert [c.title for c in board.columns] == ["B", "C", "To Do"]
+
+
+def test_window_delete_column(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    window._on_column_added("In Progress")
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    column = board.columns[1]
+
+    window._on_column_deleted(column.id)
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    assert [c.title for c in board.columns] == ["To Do"]
