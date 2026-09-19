@@ -10,9 +10,9 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
-from kanban.models import Board, BoardColumn, Priority, Task
+from kanban.models import Board, BoardColumn, Label, Priority, Task
 from kanban.services.database import Database
 
 
@@ -57,6 +57,25 @@ class TaskService:
                 list(column.tasks)
             return board
 
+    def rename_board(self, board_id: int, name: str) -> Board:
+        """Rename a board."""
+        with self._db.session() as session:
+            board = session.get(Board, board_id)
+            if board is None:
+                raise LookupError(f"Board {board_id} does not exist")
+            board.name = name
+            session.flush()
+            return board
+
+    def delete_board(self, board_id: int) -> None:
+        """Delete a board and everything it contains (columns, tasks, labels)."""
+        with self._db.session() as session:
+            board = session.get(Board, board_id)
+            if board is None:
+                raise LookupError(f"Board {board_id} does not exist")
+            session.delete(board)
+            session.flush()
+
     # -- Columns ----------------------------------------------------------
     def create_column(
         self,
@@ -76,6 +95,108 @@ class TaskService:
             session.add(column)
             session.flush()
             return column
+
+    def rename_column(self, column_id: int, title: str) -> BoardColumn:
+        """Rename a column."""
+        with self._db.session() as session:
+            column = session.get(BoardColumn, column_id)
+            if column is None:
+                raise LookupError(f"Column {column_id} does not exist")
+            column.title = title
+            session.flush()
+            return column
+
+    def move_column(self, column_id: int, new_order_idx: int) -> BoardColumn:
+        """Reorder a column within its board, clamping the index to the valid range."""
+        with self._db.session() as session:
+            column = session.get(BoardColumn, column_id)
+            if column is None:
+                raise LookupError(f"Column {column_id} does not exist")
+            ordered = [
+                c
+                for c in sorted(column.board.columns, key=lambda c: c.order_idx)
+                if c.id != column.id
+            ]
+            index = max(0, min(new_order_idx, len(ordered)))
+            ordered.insert(index, column)
+            for new_idx, c in enumerate(ordered):
+                c.order_idx = new_idx
+            session.flush()
+            return column
+
+    def delete_column(self, column_id: int) -> None:
+        """Delete a column and its tasks, then renumber the remaining columns."""
+        with self._db.session() as session:
+            column = session.get(BoardColumn, column_id)
+            if column is None:
+                raise LookupError(f"Column {column_id} does not exist")
+            remaining = [
+                c
+                for c in sorted(column.board.columns, key=lambda c: c.order_idx)
+                if c.id != column.id
+            ]
+            session.delete(column)
+            session.flush()
+            for new_idx, c in enumerate(remaining):
+                c.order_idx = new_idx
+            session.flush()
+
+    # -- Labels -----------------------------------------------------------
+    def create_label(self, board_id: int, name: str, color: str | None = None) -> Label:
+        """Create a label scoped to a board."""
+        with self._db.session() as session:
+            board = session.get(Board, board_id)
+            if board is None:
+                raise LookupError(f"Board {board_id} does not exist")
+            label = Label(name=name, color=color, board_id=board.id)
+            session.add(label)
+            session.flush()
+            return label
+
+    def list_labels(self, board_id: int) -> list[Label]:
+        """Return all labels scoped to a board, ordered by id."""
+        with self._db.session() as session:
+            board = session.get(Board, board_id)
+            if board is None:
+                return []
+            return list(board.labels)
+
+    def delete_label(self, label_id: int) -> None:
+        """Delete a label and remove it from any tasks that reference it."""
+        with self._db.session() as session:
+            label = session.get(Label, label_id)
+            if label is None:
+                raise LookupError(f"Label {label_id} does not exist")
+            session.delete(label)
+            session.flush()
+
+    def assign_label(self, task_id: int, label_id: int) -> Task:
+        """Attach a label to a task (idempotent)."""
+        with self._db.session() as session:
+            task = session.get(Task, task_id)
+            if task is None:
+                raise LookupError(f"Task {task_id} does not exist")
+            label = session.get(Label, label_id)
+            if label is None:
+                raise LookupError(f"Label {label_id} does not exist")
+            if label not in task.labels:
+                task.labels.append(label)
+            session.flush()
+            return task
+
+    def unassign_label(self, task_id: int, label_id: int) -> Task:
+        """Detach a label from a task (idempotent)."""
+        with self._db.session() as session:
+            task = session.get(Task, task_id)
+            if task is None:
+                raise LookupError(f"Task {task_id} does not exist")
+            label = session.get(Label, label_id)
+            if label is None:
+                raise LookupError(f"Label {label_id} does not exist")
+            if label in task.labels:
+                task.labels.remove(label)
+            session.flush()
+            return task
 
     # -- Tasks ------------------------------------------------------------
     def create_task(
@@ -106,9 +227,16 @@ class TaskService:
             return task
 
     def get_task(self, task_id: int) -> Task | None:
-        """Return a task by id, or ``None`` if it does not exist."""
+        """Return a task by id, or ``None`` if it does not exist.
+
+        The label relationship is loaded inside the session so the returned
+        object remains usable after the session closes.
+        """
         with self._db.session() as session:
-            return session.get(Task, task_id)
+            task = session.get(Task, task_id)
+            if task is not None:
+                list(task.labels)
+            return task
 
     def list_tasks_in_column(self, column_id: int) -> list[Task]:
         """Return all tasks in a column, ordered by their position."""
@@ -182,3 +310,43 @@ class TaskService:
             if task is None:
                 raise LookupError(f"Task {task_id} does not exist")
             session.delete(task)
+
+    # -- Search -----------------------------------------------------------
+    def search_tasks(
+        self,
+        board_id: int,
+        query: str = "",
+        priority: Priority | None = None,
+        column_id: int | None = None,
+        due_before: date | None = None,
+        due_after: date | None = None,
+        label_id: int | None = None,
+    ) -> list[Task]:
+        """Return tasks on a board matching the supplied filters.
+
+        All filters are optional and combined with ``AND``. ``query`` matches
+        the task title or description (case-insensitive). Results are ordered
+        by column position, then task position.
+        """
+        with self._db.session() as session:
+            stmt = (
+                select(Task)
+                .join(BoardColumn, Task.column_id == BoardColumn.id)
+                .where(BoardColumn.board_id == board_id)
+            )
+            if query:
+                like = f"%{query}%"
+                stmt = stmt.where(or_(Task.title.ilike(like), Task.description.ilike(like)))
+            if priority is not None:
+                stmt = stmt.where(Task.priority == priority)
+            if column_id is not None:
+                stmt = stmt.where(Task.column_id == column_id)
+            if due_before is not None:
+                stmt = stmt.where(Task.due_date <= due_before)
+            if due_after is not None:
+                stmt = stmt.where(Task.due_date >= due_after)
+            if label_id is not None:
+                stmt = stmt.where(Task.labels.any(Label.id == label_id))
+            stmt = stmt.order_by(BoardColumn.order_idx, Task.order_idx)
+            results = session.execute(stmt).scalars().all()
+            return list(results)
