@@ -1,9 +1,9 @@
 """A single draggable task card widget.
 
 The card is presentational only: it displays a task's title, priority badge,
-and due date, and emits signals when the user requests an action. It also
-supports being dragged out of its column (F-01) and highlights overdue due
-dates (F-04).
+due date, and assigned label chips, and emits signals when the user requests
+an action. It also supports being dragged out of its column (F-01), highlights
+overdue due dates (F-04), and lets the user assign or remove labels (F-11).
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMenu,
     QPushButton,
     QVBoxLayout,
 )
@@ -37,17 +38,69 @@ PRIORITY_COLORS: dict[Priority, str] = {
 
 OVERDUE_COLOR = "#d9534f"
 
+#: Fallback chip color when a label has no explicit color.
+DEFAULT_LABEL_COLOR = "#888888"
+
+#: A label described for display: ``(id, name, color)``.
+LabelSpec = tuple[int, str, str | None]
+
+
+class LabelChip(QPushButton):
+    """A small colored chip representing a label assigned to a card.
+
+    Clicking the chip requests removal of that label from the card.
+    """
+
+    remove_requested = Signal(int)  # label_id
+
+    def __init__(self, label_id: int, name: str, color: str | None) -> None:
+        super().__init__(name)
+        self._label_id = label_id
+        self.setFlat(True)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setAccessibleName(f"Label: {name}")
+        self.setToolTip(f"Remove label {name}")
+        self.setStyleSheet(self._chip_style(color))
+        self.clicked.connect(lambda: self.remove_requested.emit(self._label_id))
+
+    @property
+    def label_id(self) -> int:
+        """The database id of the label this chip represents."""
+        return self._label_id
+
+    @staticmethod
+    def _chip_style(color: str | None) -> str:
+        """Build a rounded, colored chip stylesheet for the given label color."""
+        background = color if color else DEFAULT_LABEL_COLOR
+        return (
+            f"QPushButton {{ background-color: {background}; color: #ffffff; border: none;"
+            " border-radius: 8px; padding: 1px 8px; font-size: 11px; }}"
+            "QPushButton:hover { background-color: rgba(0, 0, 0, 60); }"
+        )
+
 
 class CardWidget(QFrame):
     """A Kanban card representing a single task."""
 
-    delete_requested = Signal(int)
+    delete_requested = Signal(int)  # task_id
+    label_assign_requested = Signal(int, int)  # task_id, label_id
+    label_unassign_requested = Signal(int, int)  # task_id, label_id
 
-    def __init__(self, task_id: int, title: str, priority: Priority, due_date: date | None) -> None:
+    def __init__(
+        self,
+        task_id: int,
+        title: str,
+        priority: Priority,
+        due_date: date | None,
+        labels: list[LabelSpec] | None = None,
+        board_labels: list[LabelSpec] | None = None,
+    ) -> None:
         super().__init__()
         self._task_id = task_id
+        self._board_labels = list(board_labels or [])
         self._drag_start: QPoint | None = None
         self._overdue = False
+        self._label_chips: list[LabelChip] = []
         self.setObjectName("card")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setAccessibleName(f"Task: {title}")
@@ -85,6 +138,25 @@ class CardWidget(QFrame):
 
         layout.addLayout(meta_row)
 
+        self._label_row = QHBoxLayout()
+        self._label_row.setSpacing(4)
+        for label_id, name, color in labels or []:
+            chip = LabelChip(label_id, name, color)
+            chip.remove_requested.connect(
+                lambda lid: self.label_unassign_requested.emit(self._task_id, lid)
+            )
+            self._label_row.addWidget(chip)
+            self._label_chips.append(chip)
+
+        label_button = QPushButton("🏷")
+        label_button.setFixedWidth(24)
+        label_button.setAccessibleName("Assign label")
+        label_button.setToolTip("Assign a label")
+        label_button.clicked.connect(self._show_label_menu)
+        self._label_row.addWidget(label_button)
+        self._label_row.addStretch(1)
+        layout.addLayout(self._label_row)
+
     @property
     def task_id(self) -> int:
         """The database id of the task this card represents."""
@@ -94,6 +166,32 @@ class CardWidget(QFrame):
     def overdue(self) -> bool:
         """Whether the task's due date is in the past."""
         return self._overdue
+
+    @property
+    def label_ids(self) -> list[int]:
+        """The ids of the labels currently shown as chips on this card."""
+        return [chip.label_id for chip in self._label_chips]
+
+    # -- Labels -----------------------------------------------------------
+    def _build_label_menu(self) -> QMenu:
+        """Build a menu of the board's labels not yet assigned to this card."""
+        menu = QMenu(self)
+        assigned = set(self.label_ids)
+        for label_id, name, _color in self._board_labels:
+            if label_id in assigned:
+                continue
+            action = menu.addAction(name)
+            action.triggered.connect(
+                lambda _checked=False, lid=label_id: self.label_assign_requested.emit(
+                    self._task_id, lid
+                )
+            )
+        return menu
+
+    def _show_label_menu(self) -> None:
+        """Pop up the label-assignment menu anchored to the card."""
+        menu = self._build_label_menu()
+        menu.exec(self.mapToGlobal(self.rect().bottomLeft()))
 
     # -- Drag-and-drop ----------------------------------------------------
     def make_mime_data(self) -> QMimeData:

@@ -27,6 +27,8 @@ class BoardView(QScrollArea):
     task_added = Signal(int, str)  # column_id, title
     task_deleted = Signal(int)  # task_id
     task_moved = Signal(int, int, int)  # task_id, target_column_id, index
+    label_assign_requested = Signal(int, int)  # task_id, label_id
+    label_unassign_requested = Signal(int, int)  # task_id, label_id
 
     def __init__(self) -> None:
         super().__init__()
@@ -86,11 +88,25 @@ class BoardView(QScrollArea):
         column.column_renamed.connect(self.column_renamed)
         column.column_moved.connect(self.column_moved)
         column.column_deleted.connect(self.column_deleted)
+        column.label_assign_requested.connect(self.label_assign_requested)
+        column.label_unassign_requested.connect(self.label_unassign_requested)
         self._column_layout.insertWidget(self._column_layout.count() - 1, column)
 
-    def load_board(self, board: Board) -> None:
-        """Rebuild the view from a fully-loaded board object."""
+    def load_board(self, board: Board, visible_task_ids: set[int] | None = None) -> None:
+        """Rebuild the view from a fully-loaded board object.
+
+        When ``visible_task_ids`` is provided, only tasks whose id is in the
+        set are rendered (used for search & filtering). ``None`` shows all.
+        """
         self.clear_columns()
+        board_labels = [(label.id, label.name, label.color) for label in board.labels]
         for index, column in enumerate(board.columns):
-            tasks = [(task.id, task.title, task.priority, task.due_date) for task in column.tasks]
-            self.add_column_widget(ColumnWidget(column.id, column.title, tasks, index))
+            tasks = []
+            for task in column.tasks:
+                if visible_task_ids is not None and task.id not in visible_task_ids:
+                    continue
+                labels = [(label.id, label.name, label.color) for label in task.labels]
+                tasks.append((task.id, task.title, task.priority, task.due_date, labels))
+            self.add_column_widget(
+                ColumnWidget(column.id, column.title, tasks, index, board_labels=board_labels)
+            )

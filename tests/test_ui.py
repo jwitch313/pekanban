@@ -113,7 +113,9 @@ def test_priority_colors_cover_all_priorities(qapp) -> None:
 
 def test_column_accepts_drop_and_emits_task_moved(qapp) -> None:
     column = ColumnWidget(
-        5, "To Do", [(10, "A", Priority.LOW, None), (11, "B", Priority.HIGH, None)]
+        5,
+        "To Do",
+        [(10, "A", Priority.LOW, None, []), (11, "B", Priority.HIGH, None, [])],
     )
     captured: list[tuple[int, int, int]] = []
     column.task_moved.connect(lambda *a: captured.append(a))
@@ -133,7 +135,9 @@ def test_column_accepts_drop_and_emits_task_moved(qapp) -> None:
 
 def test_column_drop_index_boundaries(qapp) -> None:
     column = ColumnWidget(
-        5, "To Do", [(10, "A", Priority.LOW, None), (11, "B", Priority.HIGH, None)]
+        5,
+        "To Do",
+        [(10, "A", Priority.LOW, None, []), (11, "B", Priority.HIGH, None, [])],
     )
     # Dropping above the first card yields index 0.
     assert column._drop_index_at(QPoint(0, 0)) == 0
@@ -344,3 +348,192 @@ def test_window_delete_last_board_creates_default(window: MainWindow) -> None:
     assert len(boards) == 1
     assert boards[0].name == "My Board"
     assert window._current_board_id == boards[0].id
+
+
+# -- Labels (chips, picker, panel, wiring) --------------------------------
+def test_label_chip_style_and_remove_signal(qapp) -> None:
+    from kanban.ui.card_widget import DEFAULT_LABEL_COLOR, LabelChip
+
+    chip = LabelChip(3, "Bug", "#d9534f")
+    assert chip.label_id == 3
+    assert "#d9534f" in chip.styleSheet()
+
+    fallback = LabelChip(4, "Misc", None)
+    assert DEFAULT_LABEL_COLOR in fallback.styleSheet()
+
+    captured: list[int] = []
+    chip.remove_requested.connect(lambda v: captured.append(v))
+    chip.click()
+    assert captured == [3]
+
+
+def test_card_renders_label_chips(qapp) -> None:
+    card = CardWidget(
+        1,
+        "Task",
+        Priority.LOW,
+        None,
+        labels=[(1, "Bug", "#d9534f"), (2, "Feature", "#4a90d9")],
+    )
+    assert card.label_ids == [1, 2]
+
+    captured: list[tuple[int, int]] = []
+    card.label_unassign_requested.connect(lambda *a: captured.append(a))
+    card._label_chips[0].remove_requested.emit(1)
+    assert captured == [(1, 1)]
+
+
+def test_card_label_menu_excludes_assigned_and_emits(qapp) -> None:
+    card = CardWidget(
+        7,
+        "Task",
+        Priority.LOW,
+        None,
+        labels=[(1, "Bug", "#d9534f")],
+        board_labels=[(1, "Bug", "#d9534f"), (2, "Feature", "#4a90d9")],
+    )
+    menu = card._build_label_menu()
+    # Only the unassigned label should appear.
+    assert [action.text() for action in menu.actions()] == ["Feature"]
+
+    captured: list[tuple[int, int]] = []
+    card.label_assign_requested.connect(lambda *a: captured.append(a))
+    menu.actions()[0].trigger()
+    assert captured == [(7, 2)]
+
+
+def test_column_forwards_label_signals(qapp) -> None:
+    column = ColumnWidget(
+        5,
+        "To Do",
+        [(10, "A", Priority.LOW, None, [])],
+        board_labels=[(1, "Bug", "#d9534f")],
+    )
+    assigned: list[tuple[int, int]] = []
+    unassigned: list[tuple[int, int]] = []
+    column.label_assign_requested.connect(lambda *a: assigned.append(a))
+    column.label_unassign_requested.connect(lambda *a: unassigned.append(a))
+
+    card = column._card_layout.itemAt(0).widget()
+    assert isinstance(card, CardWidget)
+    card.label_assign_requested.emit(10, 1)
+    card.label_unassign_requested.emit(10, 1)
+    assert assigned == [(10, 1)]
+    assert unassigned == [(10, 1)]
+
+
+def test_board_view_forwards_label_signals(qapp) -> None:
+    view = BoardView()
+    assigned: list[tuple[int, int]] = []
+    unassigned: list[tuple[int, int]] = []
+    view.label_assign_requested.connect(lambda *a: assigned.append(a))
+    view.label_unassign_requested.connect(lambda *a: unassigned.append(a))
+
+    column = ColumnWidget(9, "To Do", [])
+    view.add_column_widget(column)
+    column.label_assign_requested.emit(1, 2)
+    column.label_unassign_requested.emit(1, 2)
+    assert assigned == [(1, 2)]
+    assert unassigned == [(1, 2)]
+
+
+def test_board_view_filters_visible_tasks(qapp) -> None:
+    from kanban.models import Board, BoardColumn, Task
+
+    board = Board(id=1, name="B")
+    column = BoardColumn(id=1, title="To Do", order_idx=0)
+    t1 = Task(id=1, title="One", priority=Priority.LOW, order_idx=0)
+    t2 = Task(id=2, title="Two", priority=Priority.HIGH, order_idx=1)
+    column.tasks.extend([t1, t2])
+    board.columns.append(column)
+
+    view = BoardView()
+    view.load_board(board, visible_task_ids={2})
+    cards = view.widget().findChildren(CardWidget)
+    assert [card.task_id for card in cards] == [2]
+
+
+def test_label_panel_add_and_delete(qapp) -> None:
+    from kanban.ui.label_panel import PRESET_COLORS, LabelPanel
+
+    panel = LabelPanel()
+    added: list[tuple[str, str]] = []
+    deleted: list[int] = []
+    panel.label_added.connect(lambda *a: added.append(a))
+    panel.label_deleted.connect(lambda v: deleted.append(v))
+
+    panel.load_labels([(1, "Bug", "#d9534f"), (2, "Feature", "#4a90d9")])
+    assert panel._list.count() == 2
+
+    panel._name_edit.setText("Urgent")
+    panel._submit_new_label()
+    assert len(added) == 1
+    assert added[0][0] == "Urgent"
+    assert added[0][1] in PRESET_COLORS
+
+    panel._list.setCurrentRow(1)
+    panel._delete_label()
+    assert deleted == [2]
+
+
+def test_label_panel_blank_name_ignored(qapp) -> None:
+    from kanban.ui.label_panel import LabelPanel
+
+    panel = LabelPanel()
+    added: list[tuple[str, str]] = []
+    panel.label_added.connect(lambda *a: added.append(a))
+    panel._name_edit.setText("   ")
+    panel._submit_new_label()
+    assert added == []
+
+
+def test_window_label_crud(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+
+    window._on_label_added("Bug", "#d9534f")
+    labels = window._service.list_labels(board_id)
+    assert len(labels) == 1
+    label = labels[0]
+
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Task")
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+
+    window._on_label_assigned(task.id, label.id)
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    assert [lbl.id for lbl in board.columns[0].tasks[0].labels] == [label.id]
+
+    window._on_label_unassigned(task.id, label.id)
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    assert board.columns[0].tasks[0].labels == []
+
+    window._on_label_deleted(label.id)
+    assert window._service.list_labels(board_id) == []
+
+
+def test_sidebar_forwards_label_signals(qapp) -> None:
+    from kanban.ui.sidebar import Sidebar
+
+    sidebar = Sidebar()
+    added: list[tuple[str, str]] = []
+    deleted: list[int] = []
+    sidebar.label_added.connect(lambda *a: added.append(a))
+    sidebar.label_deleted.connect(lambda v: deleted.append(v))
+
+    sidebar.load_labels([(1, "Bug", "#d9534f")])
+    assert sidebar._label_panel._list.count() == 1
+
+    sidebar._label_panel._name_edit.setText("New")
+    sidebar._label_panel._submit_new_label()
+    assert len(added) == 1
+
+    sidebar._label_panel._list.setCurrentRow(0)
+    sidebar._label_panel._delete_label()
+    assert deleted == [1]

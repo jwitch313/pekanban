@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from kanban.models import Board
+from kanban.ui.label_panel import LabelPanel
 
 
 class Sidebar(QFrame):
@@ -29,6 +30,8 @@ class Sidebar(QFrame):
     board_added = Signal(str)  # name
     board_renamed = Signal(int, str)  # board_id, new_name
     board_deleted = Signal(int)  # board_id
+    label_added = Signal(str, str)  # name, color
+    label_deleted = Signal(int)  # label_id
 
     def __init__(self) -> None:
         super().__init__()
@@ -77,6 +80,11 @@ class Sidebar(QFrame):
         add_row.addWidget(add_button)
         layout.addLayout(add_row)
 
+        self._label_panel = LabelPanel()
+        self._label_panel.label_added.connect(self.label_added)
+        self._label_panel.label_deleted.connect(self.label_deleted)
+        layout.addWidget(self._label_panel, 1)
+
     def _on_current_changed(self, current: QListWidgetItem | None, _previous: object) -> None:
         """Emit the selected board id when the current item changes."""
         if current is not None:
@@ -118,6 +126,10 @@ class Sidebar(QFrame):
             return
         self.board_added.emit(name)
         self._name_edit.clear()
+
+    def load_labels(self, labels: list[tuple[int, str, str | None]]) -> None:
+        """Populate the embedded label panel with the board's labels."""
+        self._label_panel.load_labels(labels)
 
     def load_boards(self, boards: list[Board], selected_id: int | None = None) -> None:
         """Populate the board list and optionally select one."""

@@ -50,6 +50,10 @@ class MainWindow(QMainWindow):
         self._board_view.task_added.connect(self._on_task_added)
         self._board_view.task_deleted.connect(self._on_task_deleted)
         self._board_view.task_moved.connect(self._on_task_moved)
+        self._sidebar.label_added.connect(self._on_label_added)
+        self._sidebar.label_deleted.connect(self._on_label_deleted)
+        self._board_view.label_assign_requested.connect(self._on_label_assigned)
+        self._board_view.label_unassign_requested.connect(self._on_label_unassigned)
 
         self._refresh_sidebar()
         self._ensure_default_board()
@@ -74,6 +78,14 @@ class MainWindow(QMainWindow):
         board = self._service.get_board_full(self._current_board_id)
         if board is not None:
             self._board_view.load_board(board)
+            self._refresh_labels()
+
+    def _refresh_labels(self) -> None:
+        """Reload the current board's labels into the sidebar label panel."""
+        if self._current_board_id is None:
+            return
+        labels = self._service.list_labels(self._current_board_id)
+        self._sidebar.load_labels([(label.id, label.name, label.color) for label in labels])
 
     # -- Slots ------------------------------------------------------------
     def _on_board_selected(self, board_id: int) -> None:
@@ -140,6 +152,27 @@ class MainWindow(QMainWindow):
     def _on_task_moved(self, task_id: int, column_id: int, index: int) -> None:
         """Move a task to a new column/position (drag-and-drop) and refresh."""
         self._service.move_task(task_id, column_id, index)
+        self._load_current_board()
+
+    def _on_label_added(self, name: str, color: str) -> None:
+        """Create a label on the current board and refresh."""
+        if self._current_board_id is not None:
+            self._service.create_label(self._current_board_id, name, color)
+            self._load_current_board()
+
+    def _on_label_deleted(self, label_id: int) -> None:
+        """Delete a label and refresh."""
+        self._service.delete_label(label_id)
+        self._load_current_board()
+
+    def _on_label_assigned(self, task_id: int, label_id: int) -> None:
+        """Assign a label to a task and refresh."""
+        self._service.assign_label(task_id, label_id)
+        self._load_current_board()
+
+    def _on_label_unassigned(self, task_id: int, label_id: int) -> None:
+        """Remove a label from a task and refresh."""
+        self._service.unassign_label(task_id, label_id)
         self._load_current_board()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt naming

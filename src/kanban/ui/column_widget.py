@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 )
 
 from kanban.models import Priority
-from kanban.ui.card_widget import KANBAN_TASK_MIME, CardWidget
+from kanban.ui.card_widget import KANBAN_TASK_MIME, CardWidget, LabelSpec
 
 
 class _DoubleClickableLabel(QLabel):
@@ -48,17 +48,21 @@ class ColumnWidget(QFrame):
     column_renamed = Signal(int, str)  # column_id, new_title
     column_moved = Signal(int, int)  # column_id, new_index
     column_deleted = Signal(int)  # column_id
+    label_assign_requested = Signal(int, int)  # task_id, label_id
+    label_unassign_requested = Signal(int, int)  # task_id, label_id
 
     def __init__(
         self,
         column_id: int,
         title: str,
-        tasks: list[tuple[int, str, Priority, date | None]],
+        tasks: list[tuple[int, str, Priority, date | None, list[LabelSpec]]],
         index: int = 0,
+        board_labels: list[LabelSpec] | None = None,
     ) -> None:
         super().__init__()
         self._column_id = column_id
         self._index = index
+        self._board_labels = list(board_labels or [])
         self.setObjectName("column")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setAcceptDrops(True)
@@ -105,9 +109,18 @@ class ColumnWidget(QFrame):
 
         self._card_layout = QVBoxLayout()
         self._card_layout.setSpacing(6)
-        for task_id, task_title, priority, due_date in tasks:
-            card = CardWidget(task_id, task_title, priority, due_date)
+        for task_id, task_title, priority, due_date, labels in tasks:
+            card = CardWidget(
+                task_id,
+                task_title,
+                priority,
+                due_date,
+                labels=labels,
+                board_labels=self._board_labels,
+            )
             card.delete_requested.connect(self.task_deleted)
+            card.label_assign_requested.connect(self.label_assign_requested)
+            card.label_unassign_requested.connect(self.label_unassign_requested)
             self._card_layout.addWidget(card)
         layout.addLayout(self._card_layout)
 

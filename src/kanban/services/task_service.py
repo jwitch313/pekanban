@@ -53,8 +53,10 @@ class TaskService:
             board = session.get(Board, board_id)
             if board is None:
                 return None
+            list(board.labels)
             for column in board.columns:
-                list(column.tasks)
+                for task in column.tasks:
+                    list(task.labels)
             return board
 
     def rename_board(self, board_id: int, name: str) -> Board:
