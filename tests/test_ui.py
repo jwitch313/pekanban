@@ -537,3 +537,167 @@ def test_sidebar_forwards_label_signals(qapp) -> None:
     sidebar._label_panel._list.setCurrentRow(0)
     sidebar._label_panel._delete_label()
     assert deleted == [1]
+
+
+# -- Slice 5: search & filtering ------------------------------------------
+
+
+def test_search_bar_defaults(qapp) -> None:
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    filters = bar.build_filters()
+    assert filters == {
+        "query": "",
+        "priority": None,
+        "column_id": None,
+        "label_id": None,
+        "due_before": None,
+        "due_after": None,
+    }
+
+
+def test_search_bar_build_filters_reflects_controls(qapp) -> None:
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    bar._query.setText("  urgent  ")
+    bar._priority.setCurrentIndex(1)
+    bar.load_columns([(7, "Doing")])
+    bar._column.setCurrentIndex(1)
+    bar.load_labels([(3, "Bug")])
+    bar._label.setCurrentIndex(1)
+
+    filters = bar.build_filters()
+    assert filters["query"] == "urgent"
+    assert filters["priority"] is Priority.LOW
+    assert filters["column_id"] == 7
+    assert filters["label_id"] == 3
+    assert filters["due_before"] is None
+    assert filters["due_after"] is None
+
+
+def test_search_bar_due_range(qapp) -> None:
+    from PySide6.QtCore import QDate
+
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    bar._due_enabled.setChecked(True)
+    bar._due_after.setDate(QDate(2024, 1, 1))
+    bar._due_before.setDate(QDate(2024, 1, 31))
+    filters = bar.build_filters()
+    assert filters["due_after"] == date(2024, 1, 1)
+    assert filters["due_before"] == date(2024, 1, 31)
+
+
+def test_search_bar_clear_resets_and_emits(qapp) -> None:
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    emitted: list[dict] = []
+    bar.filters_changed.connect(lambda f: emitted.append(f))
+
+    bar._query.setText("something")
+    bar.clear()
+
+    assert bar.build_filters()["query"] == ""
+    assert emitted and emitted[-1]["query"] == ""
+
+
+def test_search_bar_reset_does_not_emit(qapp) -> None:
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    emitted: list[dict] = []
+    bar.filters_changed.connect(lambda f: emitted.append(f))
+
+    bar._query.setText("something")
+    emitted.clear()
+    bar.reset()
+
+    assert bar.build_filters()["query"] == ""
+    assert emitted == []
+
+
+def test_window_no_filter_shows_all_cards(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Alpha")
+    window._on_task_added(column.id, "Beta")
+
+    cards = window._board_view.widget().findChildren(CardWidget)
+    assert len(cards) == 2
+
+
+def test_window_query_filter_shows_matching_cards(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Alpha task")
+    window._on_task_added(column.id, "Beta task")
+
+    window._apply_filters({"query": "alpha", "priority": None, "column_id": None,
+                           "label_id": None, "due_before": None, "due_after": None})
+
+    cards = window._board_view.widget().findChildren(CardWidget)
+    assert len(cards) == 1
+    assert cards[0].accessibleName() == "Task: Alpha task"
+
+
+def test_window_priority_filter(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Low task")
+    window._service.create_task(column.id, "High task", priority=Priority.HIGH)
+    window._load_current_board()
+
+    window._apply_filters({"query": "", "priority": Priority.HIGH, "column_id": None,
+                           "label_id": None, "due_before": None, "due_after": None})
+
+    cards = window._board_view.widget().findChildren(CardWidget)
+    assert len(cards) == 1
+    assert cards[0].accessibleName() == "Task: High task"
+
+
+def test_window_clear_filters_restores_all(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Alpha")
+    window._on_task_added(column.id, "Beta")
+
+    window._apply_filters({"query": "alpha", "priority": None, "column_id": None,
+                           "label_id": None, "due_before": None, "due_after": None})
+    assert len(window._board_view.widget().findChildren(CardWidget)) == 1
+
+    window._search_bar.clear()
+    assert len(window._board_view.widget().findChildren(CardWidget)) == 2
+
+
+def test_window_board_switch_resets_filters(window: MainWindow) -> None:
+    board_id = window._current_board_id
+    assert board_id is not None
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Alpha")
+    window._on_task_added(column.id, "Beta")
+
+    window._apply_filters({"query": "alpha", "priority": None, "column_id": None,
+                           "label_id": None, "due_before": None, "due_after": None})
+    assert len(window._board_view.widget().findChildren(CardWidget)) == 1
+
+    window._on_board_added("Second")
+    assert window._search_bar.build_filters()["query"] == ""
+    assert window._filters == {}

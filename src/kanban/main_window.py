@@ -6,12 +6,17 @@ cards), and routes user actions to the :class:`TaskService`.
 
 from __future__ import annotations
 
-from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QWidget
+from datetime import date
+from typing import cast
 
+from PySide6.QtGui import QCloseEvent
+from PySide6.QtWidgets import QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
+
+from kanban.models import Board, Priority
 from kanban.services.database import Database, create_database
 from kanban.services.task_service import TaskService
 from kanban.ui.board_view import BoardView
+from kanban.ui.search_bar import Filters, SearchBar
 from kanban.ui.sidebar import Sidebar
 
 
@@ -24,6 +29,7 @@ class MainWindow(QMainWindow):
         self._database.init_db()
         self._service = TaskService(self._database)
         self._current_board_id: int | None = None
+        self._filters: Filters = {}
 
         self.setWindowTitle("KanBan")
         self.resize(1100, 700)
@@ -34,9 +40,17 @@ class MainWindow(QMainWindow):
         layout.setSpacing(0)
 
         self._sidebar = Sidebar()
+        self._search_bar = SearchBar()
         self._board_view = BoardView()
         layout.addWidget(self._sidebar)
-        layout.addWidget(self._board_view, 1)
+
+        right = QWidget()
+        right_layout = QVBoxLayout(right)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+        right_layout.addWidget(self._search_bar)
+        right_layout.addWidget(self._board_view, 1)
+        layout.addWidget(right, 1)
         self.setCentralWidget(central)
 
         self._sidebar.board_selected.connect(self._on_board_selected)
@@ -54,6 +68,7 @@ class MainWindow(QMainWindow):
         self._sidebar.label_deleted.connect(self._on_label_deleted)
         self._board_view.label_assign_requested.connect(self._on_label_assigned)
         self._board_view.label_unassign_requested.connect(self._on_label_unassigned)
+        self._search_bar.filters_changed.connect(self._apply_filters)
 
         self._refresh_sidebar()
         self._ensure_default_board()
@@ -77,8 +92,49 @@ class MainWindow(QMainWindow):
             return
         board = self._service.get_board_full(self._current_board_id)
         if board is not None:
-            self._board_view.load_board(board)
+            visible = self._compute_visible_task_ids(board)
+            self._board_view.load_board(board, visible)
             self._refresh_labels()
+            self._search_bar.load_columns(
+                [(column.id, column.title) for column in board.columns]
+            )
+            self._search_bar.load_labels(
+                [(label.id, label.name) for label in board.labels]
+            )
+
+    def _is_active(self, filters: Filters) -> bool:
+        """Return True if any filter in ``filters`` is set to a non-default value."""
+        return bool(
+            filters.get("query")
+            or filters.get("priority") is not None
+            or filters.get("column_id") is not None
+            or filters.get("label_id") is not None
+            or filters.get("due_before") is not None
+            or filters.get("due_after") is not None
+        )
+
+    def _compute_visible_task_ids(self, board: Board) -> set[int] | None:
+        """Return the set of task ids to render, or ``None`` to show all.
+
+        When no filter is active every card is shown. Otherwise the board's
+        tasks are filtered through :meth:`TaskService.search_tasks`.
+        """
+        if not self._is_active(self._filters):
+            return None
+        board_id = self._current_board_id
+        if board_id is None:
+            return None
+        filters = self._filters
+        tasks = self._service.search_tasks(
+            board_id,
+            query=cast(str, filters.get("query") or ""),
+            priority=cast("Priority | None", filters.get("priority")),
+            column_id=cast("int | None", filters.get("column_id")),
+            label_id=cast("int | None", filters.get("label_id")),
+            due_before=cast("date | None", filters.get("due_before")),
+            due_after=cast("date | None", filters.get("due_after")),
+        )
+        return {task.id for task in tasks}
 
     def _refresh_labels(self) -> None:
         """Reload the current board's labels into the sidebar label panel."""
@@ -88,9 +144,15 @@ class MainWindow(QMainWindow):
         self._sidebar.load_labels([(label.id, label.name, label.color) for label in labels])
 
     # -- Slots ------------------------------------------------------------
+    def _apply_filters(self, filters: Filters) -> None:
+        """Store the active filters and re-render the board."""
+        self._filters = filters
+        self._load_current_board()
+
     def _on_board_selected(self, board_id: int) -> None:
         """Switch to the selected board."""
         self._current_board_id = board_id
+        self._reset_filters()
         self._load_current_board()
 
     def _on_board_added(self, name: str) -> None:
@@ -98,6 +160,7 @@ class MainWindow(QMainWindow):
         board = self._service.create_board(name)
         self._current_board_id = board.id
         self._refresh_sidebar()
+        self._reset_filters()
         self._load_current_board()
 
     def _on_board_renamed(self, board_id: int, name: str) -> None:
@@ -116,6 +179,7 @@ class MainWindow(QMainWindow):
             else:
                 self._current_board_id = self._service.create_board("My Board").id
         self._refresh_sidebar()
+        self._reset_filters()
         self._load_current_board()
 
     def _on_column_added(self, title: str) -> None:
@@ -174,6 +238,11 @@ class MainWindow(QMainWindow):
         """Remove a label from a task and refresh."""
         self._service.unassign_label(task_id, label_id)
         self._load_current_board()
+
+    def _reset_filters(self) -> None:
+        """Clear the active filters and reset the search bar (no re-render)."""
+        self._filters = {}
+        self._search_bar.reset()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt naming
         """Dispose of the database engine when the window closes."""
