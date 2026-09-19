@@ -44,6 +44,7 @@ class MainWindow(QMainWindow):
         self._board_view.column_added.connect(self._on_column_added)
         self._board_view.task_added.connect(self._on_task_added)
         self._board_view.task_deleted.connect(self._on_task_deleted)
+        self._board_view.task_moved.connect(self._on_task_moved)
 
         self._refresh_sidebar()
         self._ensure_default_board()
@@ -96,6 +97,11 @@ class MainWindow(QMainWindow):
     def _on_task_deleted(self, task_id: int) -> None:
         """Delete a task and refresh."""
         self._service.delete_task(task_id)
+        self._load_current_board()
+
+    def _on_task_moved(self, task_id: int, column_id: int, index: int) -> None:
+        """Move a task to a new column/position (drag-and-drop) and refresh."""
+        self._service.move_task(task_id, column_id, index)
         self._load_current_board()
 
     def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt naming

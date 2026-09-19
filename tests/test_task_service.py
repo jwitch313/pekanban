@@ -65,6 +65,56 @@ def test_move_task_between_columns(service: TaskService) -> None:
     assert [t.id for t in service.list_tasks_in_column(doing.id)] == [task.id]
 
 
+def test_move_task_renumbers_target_column(service: TaskService) -> None:
+    board = service.create_board("Work")
+    doing = service.create_column(board.id, "In Progress")
+    a = service.create_task(doing.id, "A")
+    service.create_task(doing.id, "B")
+    service.create_task(doing.id, "C")
+
+    # Move A to the end of the same column; order should become B, C, A.
+    service.move_task(a.id, doing.id, 3)
+    assert [t.title for t in service.list_tasks_in_column(doing.id)] == ["B", "C", "A"]
+
+
+def test_move_task_renumbers_source_column(service: TaskService) -> None:
+    board = service.create_board("Work")
+    todo = board.columns[0]
+    doing = service.create_column(board.id, "In Progress")
+    a = service.create_task(todo.id, "A")
+    service.create_task(todo.id, "B")
+    service.create_task(todo.id, "C")
+
+    service.move_task(a.id, doing.id, 0)
+    assert [t.title for t in service.list_tasks_in_column(todo.id)] == ["B", "C"]
+    assert [t.title for t in service.list_tasks_in_column(doing.id)] == ["A"]
+
+
+def test_move_task_clamps_out_of_range_index(service: TaskService) -> None:
+    board = service.create_board("Work")
+    todo = board.columns[0]
+    doing = service.create_column(board.id, "In Progress")
+    a = service.create_task(todo.id, "A")
+    service.create_task(todo.id, "B")
+
+    # An index beyond the end should clamp to the end of the target column.
+    service.move_task(a.id, doing.id, 99)
+    assert [t.title for t in service.list_tasks_in_column(doing.id)] == ["A"]
+    assert [t.title for t in service.list_tasks_in_column(todo.id)] == ["B"]
+
+
+def test_move_task_reorder_within_column(service: TaskService) -> None:
+    board = service.create_board("Work")
+    todo = board.columns[0]
+    service.create_task(todo.id, "A")
+    service.create_task(todo.id, "B")
+    c = service.create_task(todo.id, "C")
+
+    # Move C to the front of the same column.
+    service.move_task(c.id, todo.id, 0)
+    assert [t.title for t in service.list_tasks_in_column(todo.id)] == ["C", "A", "B"]
+
+
 def test_delete_task(service: TaskService) -> None:
     board = service.create_board("Work")
     task = service.create_task(board.columns[0].id, "Delete me")

@@ -23,6 +23,7 @@ class BoardView(QScrollArea):
     column_added = Signal(str)  # title
     task_added = Signal(int, str)  # column_id, title
     task_deleted = Signal(int)  # task_id
+    task_moved = Signal(int, int, int)  # task_id, target_column_id, index
 
     def __init__(self) -> None:
         super().__init__()
@@ -78,6 +79,7 @@ class BoardView(QScrollArea):
         """Insert a column widget before the trailing stretch."""
         column.task_added.connect(self.task_added)
         column.task_deleted.connect(self.task_deleted)
+        column.task_moved.connect(self.task_moved)
         self._column_layout.insertWidget(self._column_layout.count() - 1, column)
 
     def load_board(self, board: Board) -> None:
