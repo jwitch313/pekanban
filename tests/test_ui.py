@@ -93,7 +93,7 @@ def test_column_accepts_drop_and_emits_task_moved(qapp) -> None:
     column = ColumnWidget(
         5,
         "To Do",
-        [(10, "A", Priority.LOW, None, []), (11, "B", Priority.HIGH, None, [])],
+        [(10, "A", Priority.LOW, None, [], []), (11, "B", Priority.HIGH, None, [], [])],
     )
     captured: list[tuple[int, int, int]] = []
     column.task_moved.connect(lambda *a: captured.append(a))
@@ -115,7 +115,7 @@ def test_column_drop_index_boundaries(qapp) -> None:
     column = ColumnWidget(
         5,
         "To Do",
-        [(10, "A", Priority.LOW, None, []), (11, "B", Priority.HIGH, None, [])],
+        [(10, "A", Priority.LOW, None, [], []), (11, "B", Priority.HIGH, None, [], [])],
     )
     # Dropping above the first card yields index 0.
     assert column._drop_index_at(QPoint(0, 0)) == 0
@@ -384,7 +384,7 @@ def test_column_forwards_label_signals(qapp) -> None:
     column = ColumnWidget(
         5,
         "To Do",
-        [(10, "A", Priority.LOW, None, [])],
+        [(10, "A", Priority.LOW, None, [], [])],
         board_labels=[(1, "Bug", "#d9534f")],
     )
     assigned: list[tuple[int, int]] = []

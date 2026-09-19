@@ -13,12 +13,15 @@ from datetime import date
 from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
 from PySide6.QtGui import QDrag, QMouseEvent
 from PySide6.QtWidgets import (
+    QCheckBox,
     QFrame,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMenu,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from kanban.models import Priority
@@ -85,6 +88,9 @@ class CardWidget(QFrame):
     delete_requested = Signal(int)  # task_id
     label_assign_requested = Signal(int, int)  # task_id, label_id
     label_unassign_requested = Signal(int, int)  # task_id, label_id
+    subtask_added = Signal(int, str)  # task_id, title
+    subtask_toggled = Signal(int)  # subtask_id
+    subtask_deleted = Signal(int)  # subtask_id
 
     def __init__(
         self,
@@ -94,6 +100,7 @@ class CardWidget(QFrame):
         due_date: date | None,
         labels: list[LabelSpec] | None = None,
         board_labels: list[LabelSpec] | None = None,
+        subtasks: list[tuple[int, str, bool]] | None = None,
     ) -> None:
         super().__init__()
         self._task_id = task_id
@@ -101,6 +108,7 @@ class CardWidget(QFrame):
         self._drag_start: QPoint | None = None
         self._overdue = False
         self._label_chips: list[LabelChip] = []
+        self._subtask_rows: list[QCheckBox] = []
         self.setObjectName("card")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setAccessibleName(f"Task: {title}")
@@ -157,6 +165,9 @@ class CardWidget(QFrame):
         self._label_row.addStretch(1)
         layout.addLayout(self._label_row)
 
+        self._subtask_section = self._build_subtask_section(subtasks or [])
+        layout.addWidget(self._subtask_section)
+
     @property
     def task_id(self) -> int:
         """The database id of the task this card represents."""
@@ -171,6 +182,59 @@ class CardWidget(QFrame):
     def label_ids(self) -> list[int]:
         """The ids of the labels currently shown as chips on this card."""
         return [chip.label_id for chip in self._label_chips]
+
+    # -- Sub-tasks --------------------------------------------------------
+    def _build_subtask_section(self, subtasks: list[tuple[int, str, bool]]) -> QWidget:
+        """Build the sub-task list and inline add field for this card."""
+        section = QWidget()
+        layout = QVBoxLayout(section)
+        layout.setContentsMargins(0, 2, 0, 0)
+        layout.setSpacing(3)
+
+        header = QLabel("Subtasks")
+        header.setObjectName("subtaskHeader")
+        layout.addWidget(header)
+
+        for subtask_id, subtask_title, completed in subtasks:
+            row = QHBoxLayout()
+            row.setSpacing(4)
+            checkbox = QCheckBox(subtask_title)
+            checkbox.setChecked(completed)
+            checkbox.toggled.connect(
+                lambda _checked, sid=subtask_id: self.subtask_toggled.emit(sid)
+            )
+            row.addWidget(checkbox, 1)
+            delete_button = QPushButton("✕")
+            delete_button.setFixedWidth(20)
+            delete_button.setAccessibleName(f"Delete subtask: {subtask_title}")
+            delete_button.clicked.connect(
+                lambda _checked=False, sid=subtask_id: self.subtask_deleted.emit(sid)
+            )
+            row.addWidget(delete_button)
+            layout.addLayout(row)
+            self._subtask_rows.append(checkbox)
+
+        add_row = QHBoxLayout()
+        add_row.setSpacing(4)
+        self._subtask_edit = QLineEdit()
+        self._subtask_edit.setPlaceholderText("Add subtask…")
+        self._subtask_edit.returnPressed.connect(self._submit_new_subtask)
+        add_row.addWidget(self._subtask_edit, 1)
+        add_button = QPushButton("+")
+        add_button.setFixedWidth(24)
+        add_button.setAccessibleName("Add subtask")
+        add_button.clicked.connect(self._submit_new_subtask)
+        add_row.addWidget(add_button)
+        layout.addLayout(add_row)
+        return section
+
+    def _submit_new_subtask(self) -> None:
+        """Emit a new-subtask request if the field is non-empty."""
+        title = self._subtask_edit.text().strip()
+        if not title:
+            return
+        self.subtask_added.emit(self._task_id, title)
+        self._subtask_edit.clear()
 
     # -- Labels -----------------------------------------------------------
     def _build_label_menu(self) -> QMenu:

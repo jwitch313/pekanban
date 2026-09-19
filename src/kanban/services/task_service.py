@@ -12,7 +12,7 @@ from typing import Any
 
 from sqlalchemy import or_, select
 
-from kanban.models import Board, BoardColumn, Label, Priority, Task
+from kanban.models import Board, BoardColumn, Label, Priority, Subtask, Task
 from kanban.services.database import Database
 
 
@@ -57,6 +57,7 @@ class TaskService:
             for column in board.columns:
                 for task in column.tasks:
                     list(task.labels)
+                    list(task.subtasks)
             return board
 
     def rename_board(self, board_id: int, name: str) -> Board:
@@ -312,6 +313,56 @@ class TaskService:
             if task is None:
                 raise LookupError(f"Task {task_id} does not exist")
             session.delete(task)
+
+    # -- Sub-tasks --------------------------------------------------------
+    def add_subtask(self, task_id: int, title: str) -> Subtask:
+        """Append a sub-task to a task, ordered after existing sub-tasks."""
+        with self._db.session() as session:
+            task = session.get(Task, task_id)
+            if task is None:
+                raise LookupError(f"Task {task_id} does not exist")
+            subtask = Subtask(
+                title=title,
+                completed=False,
+                order_idx=len(task.subtasks),
+            )
+            task.subtasks.append(subtask)
+            session.add(subtask)
+            session.flush()
+            return subtask
+
+    def list_subtasks(self, task_id: int) -> list[Subtask]:
+        """Return a task's sub-tasks ordered by their position."""
+        with self._db.session() as session:
+            task = session.get(Task, task_id)
+            if task is None:
+                raise LookupError(f"Task {task_id} does not exist")
+            return list(task.subtasks)
+
+    def toggle_subtask(self, subtask_id: int) -> Subtask:
+        """Flip a sub-task's completed flag and return it."""
+        with self._db.session() as session:
+            subtask = session.get(Subtask, subtask_id)
+            if subtask is None:
+                raise LookupError(f"Subtask {subtask_id} does not exist")
+            subtask.completed = not subtask.completed
+            session.flush()
+            return subtask
+
+    def delete_subtask(self, subtask_id: int) -> None:
+        """Delete a sub-task and renumber the remaining sub-tasks."""
+        with self._db.session() as session:
+            subtask = session.get(Subtask, subtask_id)
+            if subtask is None:
+                raise LookupError(f"Subtask {subtask_id} does not exist")
+            task_id = subtask.task_id
+            session.delete(subtask)
+            session.flush()
+            task = session.get(Task, task_id)
+            if task is not None:
+                for new_idx, remaining in enumerate(task.subtasks):
+                    remaining.order_idx = new_idx
+                session.flush()
 
     # -- Search -----------------------------------------------------------
     def search_tasks(

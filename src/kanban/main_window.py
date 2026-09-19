@@ -82,6 +82,9 @@ class MainWindow(QMainWindow):
         self._sidebar.label_deleted.connect(self._on_label_deleted)
         self._board_view.label_assign_requested.connect(self._on_label_assigned)
         self._board_view.label_unassign_requested.connect(self._on_label_unassigned)
+        self._board_view.subtask_added.connect(self._on_subtask_added)
+        self._board_view.subtask_toggled.connect(self._on_subtask_toggled)
+        self._board_view.subtask_deleted.connect(self._on_subtask_deleted)
         self._search_bar.filters_changed.connect(self._apply_filters)
 
         self._setup_shortcuts()
@@ -253,6 +256,21 @@ class MainWindow(QMainWindow):
     def _on_label_unassigned(self, task_id: int, label_id: int) -> None:
         """Remove a label from a task and refresh."""
         self._service.unassign_label(task_id, label_id)
+        self._load_current_board()
+
+    def _on_subtask_added(self, task_id: int, title: str) -> None:
+        """Add a sub-task to a task and refresh."""
+        self._service.add_subtask(task_id, title)
+        self._load_current_board()
+
+    def _on_subtask_toggled(self, subtask_id: int) -> None:
+        """Toggle a sub-task's completed state and refresh."""
+        self._service.toggle_subtask(subtask_id)
+        self._load_current_board()
+
+    def _on_subtask_deleted(self, subtask_id: int) -> None:
+        """Delete a sub-task and refresh."""
+        self._service.delete_subtask(subtask_id)
         self._load_current_board()
 
     def _reset_filters(self) -> None:

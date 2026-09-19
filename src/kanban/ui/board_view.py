@@ -29,6 +29,9 @@ class BoardView(QScrollArea):
     task_moved = Signal(int, int, int)  # task_id, target_column_id, index
     label_assign_requested = Signal(int, int)  # task_id, label_id
     label_unassign_requested = Signal(int, int)  # task_id, label_id
+    subtask_added = Signal(int, str)  # task_id, title
+    subtask_toggled = Signal(int)  # subtask_id
+    subtask_deleted = Signal(int)  # subtask_id
 
     def __init__(self) -> None:
         super().__init__()
@@ -90,6 +93,9 @@ class BoardView(QScrollArea):
         column.column_deleted.connect(self.column_deleted)
         column.label_assign_requested.connect(self.label_assign_requested)
         column.label_unassign_requested.connect(self.label_unassign_requested)
+        column.subtask_added.connect(self.subtask_added)
+        column.subtask_toggled.connect(self.subtask_toggled)
+        column.subtask_deleted.connect(self.subtask_deleted)
         self._column_layout.insertWidget(self._column_layout.count() - 1, column)
 
     def load_board(self, board: Board, visible_task_ids: set[int] | None = None) -> None:
@@ -106,7 +112,12 @@ class BoardView(QScrollArea):
                 if visible_task_ids is not None and task.id not in visible_task_ids:
                     continue
                 labels = [(label.id, label.name, label.color) for label in task.labels]
-                tasks.append((task.id, task.title, task.priority, task.due_date, labels))
+                subtasks = [
+                    (sub.id, sub.title, sub.completed) for sub in task.subtasks
+                ]
+                tasks.append(
+                    (task.id, task.title, task.priority, task.due_date, labels, subtasks)
+                )
             self.add_column_widget(
                 ColumnWidget(column.id, column.title, tasks, index, board_labels=board_labels)
             )

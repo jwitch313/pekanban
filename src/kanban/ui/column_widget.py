@@ -23,6 +23,10 @@ from PySide6.QtWidgets import (
 from kanban.models import Priority
 from kanban.ui.card_widget import KANBAN_TASK_MIME, CardWidget, LabelSpec
 
+#: A task as rendered in a column: id, title, priority, due date, labels,
+#: and subtasks (each subtask is id, title, completed).
+TaskSpec = tuple[int, str, Priority, date | None, list[LabelSpec], list[tuple[int, str, bool]]]
+
 
 class _DoubleClickableLabel(QLabel):
     """A label that emits a signal when double-clicked (used for rename)."""
@@ -50,12 +54,15 @@ class ColumnWidget(QFrame):
     column_deleted = Signal(int)  # column_id
     label_assign_requested = Signal(int, int)  # task_id, label_id
     label_unassign_requested = Signal(int, int)  # task_id, label_id
+    subtask_added = Signal(int, str)  # task_id, title
+    subtask_toggled = Signal(int)  # subtask_id
+    subtask_deleted = Signal(int)  # subtask_id
 
     def __init__(
         self,
         column_id: int,
         title: str,
-        tasks: list[tuple[int, str, Priority, date | None, list[LabelSpec]]],
+        tasks: list[TaskSpec],
         index: int = 0,
         board_labels: list[LabelSpec] | None = None,
     ) -> None:
@@ -109,7 +116,7 @@ class ColumnWidget(QFrame):
 
         self._card_layout = QVBoxLayout()
         self._card_layout.setSpacing(6)
-        for task_id, task_title, priority, due_date, labels in tasks:
+        for task_id, task_title, priority, due_date, labels, subtasks in tasks:
             card = CardWidget(
                 task_id,
                 task_title,
@@ -117,10 +124,14 @@ class ColumnWidget(QFrame):
                 due_date,
                 labels=labels,
                 board_labels=self._board_labels,
+                subtasks=subtasks,
             )
             card.delete_requested.connect(self.task_deleted)
             card.label_assign_requested.connect(self.label_assign_requested)
             card.label_unassign_requested.connect(self.label_unassign_requested)
+            card.subtask_added.connect(self.subtask_added)
+            card.subtask_toggled.connect(self.subtask_toggled)
+            card.subtask_deleted.connect(self.subtask_deleted)
             self._card_layout.addWidget(card)
         layout.addLayout(self._card_layout)
 
