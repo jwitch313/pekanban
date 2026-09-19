@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from kanban.models.label import Label
     from kanban.models.recurrence import Recurrence
     from kanban.models.subtask import Subtask
+    from kanban.models.time_entry import TimeEntry
 
 
 class Priority(enum.Enum):
@@ -85,6 +86,12 @@ class Task(Base, TimestampMixin):
         back_populates="task",
         uselist=False,
         cascade="all, delete-orphan",
+    )
+    time_entries: Mapped[list[TimeEntry]] = relationship(
+        "TimeEntry",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        order_by="TimeEntry.started_at",
     )
 
     def __repr__(self) -> str:  # pragma: no cover - debugging aid

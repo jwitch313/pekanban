@@ -15,6 +15,7 @@ from kanban.models.label import Label, task_labels
 from kanban.models.recurrence import Recurrence, RecurrencePattern
 from kanban.models.subtask import Subtask
 from kanban.models.task import Priority, Task
+from kanban.models.time_entry import TimeEntry
 
 __all__ = [
     "Attachment",
@@ -28,6 +29,7 @@ __all__ = [
     "RecurrencePattern",
     "Subtask",
     "Task",
+    "TimeEntry",
     "TimestampMixin",
     "task_labels",
 ]
