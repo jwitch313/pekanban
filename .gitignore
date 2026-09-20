@@ -45,6 +45,7 @@ data/*.db-shm
 
 # PyInstaller output
 *.spec
+!kanban.spec
 *.manifest
 *.bmap
 

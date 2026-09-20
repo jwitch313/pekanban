@@ -35,6 +35,34 @@ uv run ruff format . && uv run ruff check . --fix
 uv run mypy src/
 ```
 
+## Building the Windows executable
+
+The app ships as a standalone executable built with [PyInstaller](https://pyinstaller.org/).
+It produces a one-directory layout (fast startup, no per-launch extraction).
+
+```powershell
+# Windows (PowerShell)
+powershell -ExecutionPolicy Bypass -File scripts\build.ps1
+```
+
+```bash
+# Cross-platform (bash)
+bash scripts/build.sh
+```
+
+Both scripts run `uv sync` and then `pyinstaller kanban.spec`. The result is:
+
+```
+dist/KanBan/
+├── KanBan.exe        # launch this
+└── _internal/        # bundled Python + Qt runtime
+```
+
+**Deploy** by copying the entire `dist/KanBan/` folder to the target machine.
+No Python installation is required on the target. User data (SQLite database
+and file attachments) is stored in `%USERPROFILE%\.kanban\`, independent of the
+executable's location, so moving or updating the app never touches your data.
+
 ## License
 
 MIT
