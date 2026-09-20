@@ -14,6 +14,7 @@ from kanban.models.comment import Comment
 from kanban.models.dependency import Dependency
 from kanban.models.label import Label, task_labels
 from kanban.models.recurrence import Recurrence, RecurrencePattern
+from kanban.models.saved_view import SavedView
 from kanban.models.subtask import Subtask
 from kanban.models.task import Priority, Task
 from kanban.models.time_entry import TimeEntry
@@ -29,6 +30,7 @@ __all__ = [
     "Priority",
     "Recurrence",
     "RecurrencePattern",
+    "SavedView",
     "Subtask",
     "Task",
     "TimeEntry",
