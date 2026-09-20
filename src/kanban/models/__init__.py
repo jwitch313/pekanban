@@ -11,6 +11,7 @@ from kanban.models.base import Base, TimestampMixin
 from kanban.models.board import Board
 from kanban.models.column import BoardColumn
 from kanban.models.comment import Comment
+from kanban.models.dependency import Dependency
 from kanban.models.label import Label, task_labels
 from kanban.models.recurrence import Recurrence, RecurrencePattern
 from kanban.models.subtask import Subtask
@@ -23,6 +24,7 @@ __all__ = [
     "Board",
     "BoardColumn",
     "Comment",
+    "Dependency",
     "Label",
     "Priority",
     "Recurrence",
