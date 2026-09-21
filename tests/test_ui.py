@@ -988,3 +988,42 @@ def test_select_system_theme_persists(window: MainWindow) -> None:
     window._search_bar._theme_actions["system"].trigger()
     assert window._settings.theme_mode() == "system"
     assert QApplication.instance().styleSheet() in {LIGHT_QSS, DARK_QSS}
+
+
+def _qss_rule(qss: str, selector: str) -> str:
+    """Return the declaration block for ``selector`` (e.g. ``QMenu::item``)."""
+    needle = selector + " {"
+    idx = qss.find(needle)
+    assert idx != -1, f"{selector!r} rule not found in QSS"
+    brace = idx + len(selector)
+    end = qss.find("}", brace)
+    return qss[brace + 1 : end]
+
+
+def _menu_item_bg_luma(qss: str) -> float:
+    """Average RGB of the ``QMenu::item`` background color in a stylesheet."""
+    rule = _qss_rule(qss, "QMenu::item")
+    hexval = rule.split("background-color:", 1)[1].split(";", 1)[0].strip().lstrip("#")
+    return (int(hexval[0:2], 16) + int(hexval[2:4], 16) + int(hexval[4:6], 16)) / 3
+
+
+def test_menu_items_explicitly_styled_in_both_themes() -> None:
+    """Menu items must be styled explicitly so they stay visible and on-theme.
+
+    Relying on the system palette for ``QMenu::item`` leaves dropdown menus
+    invisible or mismatched on the native Windows style; an explicit rule with
+    both a background and a text color fixes that.
+    """
+    from kanban.ui.theme import DARK_QSS, LIGHT_QSS
+
+    for qss in (LIGHT_QSS, DARK_QSS):
+        rule = _qss_rule(qss, "QMenu::item")
+        assert "background-color" in rule, "QMenu::item lacks an explicit background"
+        assert "color" in rule, "QMenu::item lacks an explicit text color"
+
+
+def test_menu_item_backgrounds_match_theme() -> None:
+    """Light-theme menu items must be lighter than dark-theme menu items."""
+    from kanban.ui.theme import DARK_QSS, LIGHT_QSS
+
+    assert _menu_item_bg_luma(LIGHT_QSS) > _menu_item_bg_luma(DARK_QSS)
