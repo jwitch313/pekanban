@@ -794,23 +794,35 @@ def test_window_board_switch_resets_filters(window: MainWindow) -> None:
     assert window._filters == {}
 
 
-def test_theme_menu_present(window: MainWindow) -> None:
-    """A View menu must expose System/Light/Dark theme actions."""
+def test_theme_button_present(window: MainWindow) -> None:
+    """The search bar must expose a theme button with System/Light/Dark actions."""
     from PySide6.QtGui import QAction
 
-    actions = window._theme_actions
+    actions = window._search_bar._theme_actions
     assert set(actions) == {"system", "light", "dark"}
     for action in actions.values():
         assert isinstance(action, QAction)
         assert action.isCheckable()
 
 
+def test_theme_button_has_icon(window: MainWindow) -> None:
+    """The theme button must carry a relevant icon."""
+    button = window._search_bar._theme_button
+    assert not button.icon().isNull()
+
+
+def test_menu_bar_is_eliminated(window: MainWindow) -> None:
+    """The menu bar must be gone; theme control lives in the search bar."""
+    assert window.menuBar().actions() == []
+
+
 def test_theme_actions_are_exclusive(window: MainWindow) -> None:
     """Theme actions must behave like radio buttons (one checked at a time)."""
-    window._theme_actions["dark"].trigger()
-    assert window._theme_actions["dark"].isChecked()
-    assert not window._theme_actions["light"].isChecked()
-    assert not window._theme_actions["system"].isChecked()
+    actions = window._search_bar._theme_actions
+    actions["dark"].trigger()
+    assert actions["dark"].isChecked()
+    assert not actions["light"].isChecked()
+    assert not actions["system"].isChecked()
 
 
 def test_select_dark_theme_applies_and_persists(window: MainWindow) -> None:
@@ -819,7 +831,7 @@ def test_select_dark_theme_applies_and_persists(window: MainWindow) -> None:
 
     from kanban.ui.theme import DARK_QSS
 
-    window._theme_actions["dark"].trigger()
+    window._search_bar._theme_actions["dark"].trigger()
     assert QApplication.instance().styleSheet() == DARK_QSS
     assert window._settings.theme_mode() == "dark"
 
@@ -830,7 +842,7 @@ def test_select_light_theme_applies_and_persists(window: MainWindow) -> None:
 
     from kanban.ui.theme import LIGHT_QSS
 
-    window._theme_actions["light"].trigger()
+    window._search_bar._theme_actions["light"].trigger()
     assert QApplication.instance().styleSheet() == LIGHT_QSS
     assert window._settings.theme_mode() == "light"
 
@@ -841,6 +853,6 @@ def test_select_system_theme_persists(window: MainWindow) -> None:
 
     from kanban.ui.theme import DARK_QSS, LIGHT_QSS
 
-    window._theme_actions["system"].trigger()
+    window._search_bar._theme_actions["system"].trigger()
     assert window._settings.theme_mode() == "system"
     assert QApplication.instance().styleSheet() in {LIGHT_QSS, DARK_QSS}

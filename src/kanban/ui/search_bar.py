@@ -11,6 +11,7 @@ matching cards.
 from __future__ import annotations
 
 from PySide6.QtCore import QDate, Signal
+from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLineEdit,
+    QMenu,
     QPushButton,
 )
 
@@ -32,6 +34,7 @@ class SearchBar(QFrame):
     """Collects search/filter criteria and emits them as a dictionary."""
 
     filters_changed = Signal(dict)
+    theme_selected = Signal(str)
 
     def __init__(self) -> None:
         super().__init__()
@@ -94,6 +97,39 @@ class SearchBar(QFrame):
         clear_button.setToolTip("Clear filters")
         clear_button.clicked.connect(self.clear)
         layout.addWidget(clear_button)
+
+        self._theme_button = QPushButton()
+        self._theme_button.setIcon(icons.icon("monitor"))
+        self._theme_button.setAccessibleName("Theme")
+        self._theme_button.setToolTip("Theme")
+        self._theme_button.setMenu(self._build_theme_menu())
+        layout.addWidget(self._theme_button)
+
+    def _build_theme_menu(self) -> QMenu:
+        """Build an exclusive System/Light/Dark theme selector menu."""
+        menu = QMenu(self)
+        group = QActionGroup(self)
+        group.setExclusive(True)
+
+        self._theme_actions: dict[str, QAction] = {}
+        for mode, label, icon_name in (
+            ("system", "System", "monitor"),
+            ("light", "Light", "sun"),
+            ("dark", "Dark", "moon"),
+        ):
+            action = QAction(icons.icon(icon_name), label, self)
+            action.setCheckable(True)
+            group.addAction(action)
+            menu.addAction(action)
+            self._theme_actions[mode] = action
+            action.triggered.connect(lambda _checked, m=mode: self.theme_selected.emit(m))
+        return menu
+
+    def set_theme_mode(self, mode: str) -> None:
+        """Reflect the active theme preference in the menu's checked action."""
+        action = self._theme_actions.get(mode)
+        if action is not None:
+            action.setChecked(True)
 
     def _on_due_toggled(self, checked: bool) -> None:
         """Enable or disable the due-date fields and re-emit filters."""

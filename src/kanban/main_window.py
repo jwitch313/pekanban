@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date
 from typing import cast
 
-from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence, QShortcut
+from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -29,7 +29,6 @@ from kanban.services.undo_redo import (
     MoveTaskCommand,
     UndoRedoService,
 )
-from kanban.ui import icons
 from kanban.ui.board_view import BoardView
 from kanban.ui.search_bar import Filters, SearchBar
 from kanban.ui.sidebar import Sidebar
@@ -91,8 +90,9 @@ class MainWindow(QMainWindow):
         self._board_view.subtask_toggled.connect(self._on_subtask_toggled)
         self._board_view.subtask_deleted.connect(self._on_subtask_deleted)
         self._search_bar.filters_changed.connect(self._apply_filters)
+        self._search_bar.theme_selected.connect(self._on_theme_selected)
+        self._search_bar.set_theme_mode(self._settings.theme_mode())
 
-        self._setup_theme_menu()
         self._setup_shortcuts()
 
         self._refresh_sidebar()
@@ -287,38 +287,11 @@ class MainWindow(QMainWindow):
         if app is not None:
             apply_theme(cast("QApplication", app), resolve_theme_mode(mode))
 
-    def _setup_theme_menu(self) -> None:
-        """Add a View menu with an exclusive System/Light/Dark theme selector.
-
-        The three actions behave like radio buttons: exactly one is checked,
-        and the selection is persisted so it survives relaunches.
-        """
-        view_menu = self.menuBar().addMenu("View")
-        theme_menu = view_menu.addMenu("Theme")
-        group = QActionGroup(self)
-        group.setExclusive(True)
-
-        self._theme_actions: dict[str, QAction] = {}
-        for mode, label, icon_name in (
-            ("system", "System", "monitor"),
-            ("light", "Light", "sun"),
-            ("dark", "Dark", "moon"),
-        ):
-            action = QAction(icons.icon(icon_name), label, self)
-            action.setCheckable(True)
-            group.addAction(action)
-            theme_menu.addAction(action)
-            self._theme_actions[mode] = action
-            action.triggered.connect(lambda _checked, m=mode: self._on_theme_selected(m))
-
-        current = self._settings.theme_mode()
-        if current in self._theme_actions:
-            self._theme_actions[current].setChecked(True)
-
     def _on_theme_selected(self, mode: str) -> None:
         """Persist the chosen theme preference and re-apply it immediately."""
         self._settings.set_theme_mode(mode)
         self._apply_theme(mode)
+        self._search_bar.set_theme_mode(mode)
 
     # -- Keyboard shortcuts ----------------------------------------------
     def _setup_shortcuts(self) -> None:
