@@ -175,7 +175,7 @@ class CardWidget(QFrame):
         self._priority_button.setFixedWidth(24)
         self._priority_button.setAccessibleName("Change priority")
         self._priority_button.setToolTip("Change priority")
-        self._priority_button.setMenu(self._build_priority_menu())
+        self._priority_button.clicked.connect(self._show_priority_menu)
         meta_row.addWidget(self._priority_button)
 
         self._due_button = QPushButton()
@@ -292,6 +292,11 @@ class CardWidget(QFrame):
         self._subtask_edit.clear()
 
     # -- Priority ---------------------------------------------------------
+    def _show_priority_menu(self) -> None:
+        """Pop up the priority menu anchored to the card (no dropdown arrow)."""
+        menu = self._build_priority_menu()
+        menu.exec(self.mapToGlobal(self.rect().bottomLeft()))
+
     def _build_priority_menu(self) -> QMenu:
         """Build an exclusive menu of the four priority levels."""
         menu = QMenu(self)

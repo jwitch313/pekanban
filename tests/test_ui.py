@@ -111,13 +111,33 @@ def test_card_priority_button_emits_signal(qapp) -> None:
     card = CardWidget(5, "Task", Priority.LOW, None)
     emitted: list[tuple[int, object]] = []
     card.priority_changed.connect(lambda tid, prio: emitted.append((tid, prio)))
+    card._build_priority_menu()
     card._priority_actions[Priority.URGENT].trigger()
     assert emitted == [(5, Priority.URGENT)]
+
+
+def test_priority_button_has_no_dropdown_menu(qapp) -> None:
+    """The priority button must not use setMenu (no dropdown arrow)."""
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    assert card._priority_button.menu() is None
+
+
+def test_priority_button_click_builds_menu(qapp) -> None:
+    """Clicking the priority button builds a menu listing every priority."""
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    menu = card._build_priority_menu()
+    assert [action.text() for action in menu.actions()] == [
+        "Low",
+        "Medium",
+        "High",
+        "Urgent",
+    ]
 
 
 def test_card_priority_actions_exclusive(qapp) -> None:
     """The card's priority actions behave like radio buttons."""
     card = CardWidget(5, "Task", Priority.LOW, None)
+    card._build_priority_menu()
     assert card._priority_actions[Priority.LOW].isChecked()
     card._priority_actions[Priority.HIGH].trigger()
     assert card._priority_actions[Priority.HIGH].isChecked()
