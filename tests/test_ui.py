@@ -848,42 +848,84 @@ def test_search_bar_build_filters_reflects_controls(qapp) -> None:
     assert filters["due_after"] is None
 
 
-def test_search_bar_due_fields_enabled_by_default(qapp) -> None:
-    """The due-date fields must be usable without first toggling a checkbox."""
+def test_search_bar_due_fields_are_plain_text(qapp) -> None:
+    """The due-date fields must be plain, typeable text boxes."""
+    from PySide6.QtWidgets import QLineEdit
+
     from kanban.ui.search_bar import SearchBar
 
     bar = SearchBar()
+    assert isinstance(bar._due_after, QLineEdit)
+    assert isinstance(bar._due_before, QLineEdit)
     assert bar._due_after.isEnabled()
     assert bar._due_before.isEnabled()
 
 
 def test_search_bar_due_filter_activates_on_date_set(qapp) -> None:
-    """Setting a due date activates that filter; untouched fields stay off."""
-    from PySide6.QtCore import QDate
-
+    """Typing a due date activates that filter; untouched fields stay off."""
     from kanban.ui.search_bar import SearchBar
 
     bar = SearchBar()
     assert bar.build_filters()["due_after"] is None
     assert bar.build_filters()["due_before"] is None
 
-    bar._due_after.setDate(QDate(2024, 1, 1))
+    bar._due_after.setText("2024-01-01")
     filters = bar.build_filters()
     assert filters["due_after"] == date(2024, 1, 1)
     assert filters["due_before"] is None
 
 
 def test_search_bar_due_range(qapp) -> None:
-    from PySide6.QtCore import QDate
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    bar._due_after.setText("2024-01-01")
+    bar._due_before.setText("2024-01-31")
+    filters = bar.build_filters()
+    assert filters["due_after"] == date(2024, 1, 1)
+    assert filters["due_before"] == date(2024, 1, 31)
+
+
+def test_search_bar_invalid_due_text_is_ignored(qapp) -> None:
+    """Unparseable due-date text must not contribute a filter."""
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    bar._due_after.setText("not-a-date")
+    assert bar.build_filters()["due_after"] is None
+
+
+def test_search_bar_calendar_button_opens_popup(qapp) -> None:
+    """The calendar button must open a retained QCalendarWidget popup."""
+    from PySide6.QtWidgets import QCalendarWidget, QPushButton
 
     from kanban.ui.search_bar import SearchBar
 
     bar = SearchBar()
-    bar._due_after.setDate(QDate(2024, 1, 1))
-    bar._due_before.setDate(QDate(2024, 1, 31))
-    filters = bar.build_filters()
-    assert filters["due_after"] == date(2024, 1, 1)
-    assert filters["due_before"] == date(2024, 1, 31)
+    button = bar._due_after_calendar
+    assert isinstance(button, QPushButton)
+    assert not button.icon().isNull()
+
+    bar._show_due_calendar(button, bar._due_after)
+    assert bar._due_calendar_popup is not None
+    assert bar._due_calendar_popup.isVisible()
+    assert isinstance(bar._due_calendar_popup.findChild(QCalendarWidget), QCalendarWidget)
+
+
+def test_search_bar_calendar_selection_updates_field(qapp) -> None:
+    """Picking a date in the calendar popup writes it into the target field."""
+    from PySide6.QtCore import QDate
+    from PySide6.QtWidgets import QCalendarWidget
+
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    bar._show_due_calendar(bar._due_after_calendar, bar._due_after)
+    calendar = bar._due_calendar_popup.findChild(QCalendarWidget)
+    calendar.setSelectedDate(QDate(2025, 6, 15))
+    calendar.selectionChanged.emit()
+    assert bar._due_after.text() == "2025-06-15"
+    assert bar.build_filters()["due_after"] == date(2025, 6, 15)
 
 
 def test_search_bar_clear_resets_and_emits(qapp) -> None:

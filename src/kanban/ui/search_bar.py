@@ -10,16 +10,20 @@ matching cards.
 
 from __future__ import annotations
 
-from PySide6.QtCore import QDate, Signal
+from datetime import date
+
+from PySide6.QtCore import QDate, Qt, Signal
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
+    QCalendarWidget,
     QComboBox,
-    QDateEdit,
     QFrame,
     QHBoxLayout,
     QLineEdit,
     QMenu,
     QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
 
 from kanban.models import Priority
@@ -69,25 +73,45 @@ class SearchBar(QFrame):
         self._label.currentIndexChanged.connect(self._emit_filters)
         layout.addWidget(self._label)
 
-        # Each due-date field is always enabled so the user can pick a date
-        # directly. A field only contributes to the filter once the user has
-        # actually set a date (tracked by the ``*_active`` flags below).
-        self._due_after_active = False
-        self._due_before_active = False
-
-        self._due_after = QDateEdit()
-        self._due_after.setCalendarPopup(True)
+        # Each due-date field is a plain, typeable text box paired with a
+        # small calendar button that pops up a QCalendarWidget. A field only
+        # contributes to the filter while it holds a parseable yyyy-MM-dd
+        # date, so no separate active flags are needed.
+        self._due_after = QLineEdit()
+        self._due_after.setPlaceholderText("yyyy-MM-dd")
         self._due_after.setAccessibleName("Due from")
-        self._due_after.setDisplayFormat("yyyy-MM-dd")
-        self._due_after.dateChanged.connect(self._on_due_after_changed)
+        self._due_after.setFixedWidth(100)
+        self._due_after.textChanged.connect(self._emit_filters)
         layout.addWidget(self._due_after)
 
-        self._due_before = QDateEdit()
-        self._due_before.setCalendarPopup(True)
+        self._due_after_calendar = QPushButton()
+        self._due_after_calendar.setIcon(icons.icon("calendar"))
+        self._due_after_calendar.setAccessibleName("Due from calendar")
+        self._due_after_calendar.setToolTip("Pick due-from date")
+        self._due_after_calendar.clicked.connect(
+            lambda: self._show_due_calendar(self._due_after_calendar, self._due_after)
+        )
+        layout.addWidget(self._due_after_calendar)
+
+        self._due_before = QLineEdit()
+        self._due_before.setPlaceholderText("yyyy-MM-dd")
         self._due_before.setAccessibleName("Due until")
-        self._due_before.setDisplayFormat("yyyy-MM-dd")
-        self._due_before.dateChanged.connect(self._on_due_before_changed)
+        self._due_before.setFixedWidth(100)
+        self._due_before.textChanged.connect(self._emit_filters)
         layout.addWidget(self._due_before)
+
+        self._due_before_calendar = QPushButton()
+        self._due_before_calendar.setIcon(icons.icon("calendar"))
+        self._due_before_calendar.setAccessibleName("Due until calendar")
+        self._due_before_calendar.setToolTip("Pick due-until date")
+        self._due_before_calendar.clicked.connect(
+            lambda: self._show_due_calendar(self._due_before_calendar, self._due_before)
+        )
+        layout.addWidget(self._due_before_calendar)
+
+        self._due_calendar_popup: QWidget | None = None
+        self._due_calendar: QCalendarWidget | None = None
+        self._calendar_target: QLineEdit | None = None
 
         clear_button = QPushButton("Clear")
         clear_button.setIcon(icons.icon("clear"))
@@ -129,15 +153,54 @@ class SearchBar(QFrame):
         if action is not None:
             action.setChecked(True)
 
-    def _on_due_after_changed(self, *_args: object) -> None:
-        """Mark the 'due from' field active and re-emit filters."""
-        self._due_after_active = True
-        self._emit_filters()
+    def _show_due_calendar(self, anchor: QPushButton, target: QLineEdit) -> None:
+        """Pop up a calendar anchored to ``anchor`` for the ``target`` field.
 
-    def _on_due_before_changed(self, *_args: object) -> None:
-        """Mark the 'due until' field active and re-emit filters."""
-        self._due_before_active = True
-        self._emit_filters()
+        The popup is a top-level window retained on ``self`` so it is not
+        garbage-collected (and closed) before the user can interact with it.
+        Clicking the button again toggles the popup closed.
+        """
+        if self._due_calendar_popup is not None and self._due_calendar_popup.isVisible():
+            self._due_calendar_popup.hide()
+            return
+
+        if self._due_calendar_popup is None:
+            popup = QWidget()
+            popup.setWindowFlags(Qt.WindowType.Popup)
+            layout = QVBoxLayout(popup)
+            layout.setContentsMargins(4, 4, 4, 4)
+            self._due_calendar = QCalendarWidget()
+            self._due_calendar.setSelectedDate(QDate.currentDate())
+            self._due_calendar.selectionChanged.connect(self._on_calendar_selected)
+            layout.addWidget(self._due_calendar)
+            self.destroyed.connect(popup.deleteLater)
+            self._due_calendar_popup = popup
+
+        self._calendar_target = target
+        popup = self._due_calendar_popup
+        popup.show()
+        popup.move(anchor.mapToGlobal(anchor.rect().bottomLeft()))
+
+    def _on_calendar_selected(self) -> None:
+        """Write the picked date into the target field and close the popup."""
+        if self._calendar_target is not None and self._due_calendar is not None:
+            self._calendar_target.setText(self._due_calendar.selectedDate().toString("yyyy-MM-dd"))
+        self._close_due_calendar()
+
+    def _close_due_calendar(self) -> None:
+        """Hide the due-date calendar popup if it is open."""
+        if self._due_calendar_popup is not None:
+            self._due_calendar_popup.hide()
+
+    def _parse_due(self, edit: QLineEdit) -> date | None:
+        """Parse a field's text as a yyyy-MM-dd date, or ``None`` if invalid."""
+        text = edit.text().strip()
+        if not text:
+            return None
+        parsed = QDate.fromString(text, "yyyy-MM-dd")
+        if not parsed.isValid():
+            return None
+        return date(parsed.year(), parsed.month(), parsed.day())
 
     def _emit_filters(self, *_args: object) -> None:
         """Emit the current filter dictionary."""
@@ -150,8 +213,8 @@ class SearchBar(QFrame):
             "priority": self._priority.currentData(),
             "column_id": self._column.currentData(),
             "label_id": self._label.currentData(),
-            "due_before": (self._due_before.date().toPython() if self._due_before_active else None),
-            "due_after": (self._due_after.date().toPython() if self._due_after_active else None),
+            "due_before": self._parse_due(self._due_before),
+            "due_after": self._parse_due(self._due_after),
         }
 
     def load_columns(self, columns: list[tuple[int, str]]) -> None:
@@ -190,15 +253,12 @@ class SearchBar(QFrame):
         self._label.setCurrentIndex(0)
         self._label.blockSignals(False)
 
-        self._due_after_active = False
-        self._due_before_active = False
-
         self._due_after.blockSignals(True)
-        self._due_after.setDate(QDate.currentDate())
+        self._due_after.clear()
         self._due_after.blockSignals(False)
 
         self._due_before.blockSignals(True)
-        self._due_before.setDate(QDate.currentDate())
+        self._due_before.clear()
         self._due_before.blockSignals(False)
 
     def clear(self) -> None:
