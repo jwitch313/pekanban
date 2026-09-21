@@ -13,7 +13,6 @@ from __future__ import annotations
 from PySide6.QtCore import QDate, Signal
 from PySide6.QtGui import QAction, QActionGroup
 from PySide6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QDateEdit,
     QFrame,
@@ -70,26 +69,25 @@ class SearchBar(QFrame):
         self._label.currentIndexChanged.connect(self._emit_filters)
         layout.addWidget(self._label)
 
-        self._due_enabled = QCheckBox("Due")
-        self._due_enabled.setAccessibleName("Enable due-date range")
-        self._due_enabled.toggled.connect(self._on_due_toggled)
-        layout.addWidget(self._due_enabled)
+        # Each due-date field is always enabled so the user can pick a date
+        # directly. A field only contributes to the filter once the user has
+        # actually set a date (tracked by the ``*_active`` flags below).
+        self._due_after_active = False
+        self._due_before_active = False
 
         self._due_after = QDateEdit()
         self._due_after.setCalendarPopup(True)
         self._due_after.setAccessibleName("Due from")
         self._due_after.setDisplayFormat("yyyy-MM-dd")
-        self._due_after.dateChanged.connect(self._emit_filters)
+        self._due_after.dateChanged.connect(self._on_due_after_changed)
         layout.addWidget(self._due_after)
 
         self._due_before = QDateEdit()
         self._due_before.setCalendarPopup(True)
         self._due_before.setAccessibleName("Due until")
         self._due_before.setDisplayFormat("yyyy-MM-dd")
-        self._due_before.dateChanged.connect(self._emit_filters)
+        self._due_before.dateChanged.connect(self._on_due_before_changed)
         layout.addWidget(self._due_before)
-
-        self._set_due_enabled(False)
 
         clear_button = QPushButton("Clear")
         clear_button.setIcon(icons.icon("clear"))
@@ -131,15 +129,15 @@ class SearchBar(QFrame):
         if action is not None:
             action.setChecked(True)
 
-    def _on_due_toggled(self, checked: bool) -> None:
-        """Enable or disable the due-date fields and re-emit filters."""
-        self._set_due_enabled(checked)
+    def _on_due_after_changed(self, *_args: object) -> None:
+        """Mark the 'due from' field active and re-emit filters."""
+        self._due_after_active = True
         self._emit_filters()
 
-    def _set_due_enabled(self, enabled: bool) -> None:
-        """Toggle the enabled state of both due-date fields."""
-        self._due_after.setEnabled(enabled)
-        self._due_before.setEnabled(enabled)
+    def _on_due_before_changed(self, *_args: object) -> None:
+        """Mark the 'due until' field active and re-emit filters."""
+        self._due_before_active = True
+        self._emit_filters()
 
     def _emit_filters(self, *_args: object) -> None:
         """Emit the current filter dictionary."""
@@ -147,14 +145,13 @@ class SearchBar(QFrame):
 
     def build_filters(self) -> Filters:
         """Return the current filter values as a dictionary."""
-        due_on = self._due_enabled.isChecked()
         return {
             "query": self._query.text().strip(),
             "priority": self._priority.currentData(),
             "column_id": self._column.currentData(),
             "label_id": self._label.currentData(),
-            "due_before": self._due_before.date().toPython() if due_on else None,
-            "due_after": self._due_after.date().toPython() if due_on else None,
+            "due_before": (self._due_before.date().toPython() if self._due_before_active else None),
+            "due_after": (self._due_after.date().toPython() if self._due_after_active else None),
         }
 
     def load_columns(self, columns: list[tuple[int, str]]) -> None:
@@ -193,10 +190,8 @@ class SearchBar(QFrame):
         self._label.setCurrentIndex(0)
         self._label.blockSignals(False)
 
-        self._due_enabled.blockSignals(True)
-        self._due_enabled.setChecked(False)
-        self._due_enabled.blockSignals(False)
-        self._set_due_enabled(False)
+        self._due_after_active = False
+        self._due_before_active = False
 
         self._due_after.blockSignals(True)
         self._due_after.setDate(QDate.currentDate())

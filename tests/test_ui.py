@@ -744,13 +744,37 @@ def test_search_bar_build_filters_reflects_controls(qapp) -> None:
     assert filters["due_after"] is None
 
 
+def test_search_bar_due_fields_enabled_by_default(qapp) -> None:
+    """The due-date fields must be usable without first toggling a checkbox."""
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    assert bar._due_after.isEnabled()
+    assert bar._due_before.isEnabled()
+
+
+def test_search_bar_due_filter_activates_on_date_set(qapp) -> None:
+    """Setting a due date activates that filter; untouched fields stay off."""
+    from PySide6.QtCore import QDate
+
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    assert bar.build_filters()["due_after"] is None
+    assert bar.build_filters()["due_before"] is None
+
+    bar._due_after.setDate(QDate(2024, 1, 1))
+    filters = bar.build_filters()
+    assert filters["due_after"] == date(2024, 1, 1)
+    assert filters["due_before"] is None
+
+
 def test_search_bar_due_range(qapp) -> None:
     from PySide6.QtCore import QDate
 
     from kanban.ui.search_bar import SearchBar
 
     bar = SearchBar()
-    bar._due_enabled.setChecked(True)
     bar._due_after.setDate(QDate(2024, 1, 1))
     bar._due_before.setDate(QDate(2024, 1, 31))
     filters = bar.build_filters()
