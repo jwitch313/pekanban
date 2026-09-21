@@ -72,6 +72,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     border: 1px solid #dfe2e7;
     border-radius: 8px;
 }
+#card QWidget { background: transparent; }
+#card QLabel { background: transparent; }
+#card QCheckBox { background: transparent; }
 #sidebar { background-color: #f0f2f5; border-right: 1px solid #dfe2e7; }
 #sidebarHeader { color: #1f2328; font-weight: bold; font-size: 13px; }
 #searchBar { background-color: #f5f6f8; border-bottom: 1px solid #dfe2e7; }
@@ -132,6 +135,9 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     border: 1px solid #3a3b40;
     border-radius: 8px;
 }
+#card QWidget { background: transparent; }
+#card QLabel { background: transparent; }
+#card QCheckBox { background: transparent; }
 #sidebar { background-color: #202124; border-right: 1px solid #303136; }
 #sidebarHeader { color: #e6e6e6; font-weight: bold; font-size: 13px; }
 #searchBar { background-color: #1e1f22; border-bottom: 1px solid #303136; }

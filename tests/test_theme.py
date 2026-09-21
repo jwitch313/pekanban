@@ -61,6 +61,23 @@ def test_stylesheets_style_board_widgets_for_contrast() -> None:
             assert selector in qss, f"{selector} missing from stylesheet"
 
 
+def test_card_children_blend_into_card_background() -> None:
+    """Task name, priority, subtask heading and rows must blend into the card.
+
+    The card's child labels and checkboxes must be transparent so the card's
+    own background shows through, making the whole card feel seamless.
+    """
+    import re
+
+    for qss in (LIGHT_QSS, DARK_QSS):
+        assert re.search(r"#card\s+QLabel\s*\{[^}]*background:\s*transparent", qss), (
+            "card labels must have a transparent background"
+        )
+        assert re.search(r"#card\s+QCheckBox\s*\{[^}]*background:\s*transparent", qss), (
+            "card subtask checkboxes must have a transparent background"
+        )
+
+
 def test_column_and_card_backgrounds_differ() -> None:
     """The column and card backgrounds must not be identical (readability)."""
     import re
