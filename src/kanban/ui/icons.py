@@ -5,9 +5,11 @@ tag, arrows, sun/moon). This module renders a small set of inline, Feather-style
 SVG icons to :class:`QIcon` instances so every button carries a relevant, modern
 glyph.
 
-Icons are stroke-based and rendered in a neutral mid-gray that stays legible on
-both the light and dark button backgrounds, so a single icon set works for both
-themes without re-rendering on theme changes.
+Icons are stroke-based and rendered in a semantic color per glyph (green for
+add, red for delete, orange for priority, and so on) so the UI's icon buttons
+read as colorful, meaningful actions rather than a single neutral gray. The
+same palette stays legible on both the light and dark button backgrounds, so a
+single icon set works for both themes without re-rendering on theme changes.
 """
 
 from __future__ import annotations
@@ -16,8 +18,26 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 
-#: Neutral stroke color legible on both light and dark button backgrounds.
+#: Fallback stroke color for any icon without a semantic color.
 DEFAULT_ICON_COLOR = "#8a8f98"
+
+#: Semantic stroke colors so each glyph reads as its action at a glance.
+#: Every icon in the set is assigned a distinct, meaningful hue so the UI's
+#: icon buttons are colorful rather than a single neutral gray.
+DEFAULT_ICON_COLORS: dict[str, str] = {
+    "plus": "#2e9e5b",  # green — add
+    "trash": "#d9534f",  # red — delete
+    "pencil": "#2f6fed",  # blue — edit
+    "tag": "#8e44ad",  # purple — label
+    "arrow_left": "#0f9d8f",  # teal — move
+    "arrow_right": "#0f9d8f",  # teal — move
+    "clear": "#64748b",  # slate — clear
+    "sun": "#e0a800",  # amber — light theme
+    "moon": "#5b6ee1",  # indigo — dark theme
+    "monitor": "#2f6fed",  # blue — system theme
+    "flag": "#e07b39",  # orange — priority
+    "calendar": "#2f6fed",  # blue — due date
+}
 
 #: Feather-style icon paths (24x24 viewBox, stroke-based).
 _ICON_PATHS: dict[str, str] = {
@@ -60,19 +80,30 @@ def _svg_for(name: str, color: str) -> bytes:
     return svg.encode("utf-8")
 
 
-def icon(name: str, color: str = DEFAULT_ICON_COLOR, size: int = 16) -> QIcon:
+def default_color(name: str) -> str:
+    """Return the default stroke color for ``name``.
+
+    Icons with a semantic color use it; any other name falls back to the
+    neutral :data:`DEFAULT_ICON_COLOR`.
+    """
+    return DEFAULT_ICON_COLORS.get(name, DEFAULT_ICON_COLOR)
+
+
+def icon(name: str, color: str | None = None, size: int = 16) -> QIcon:
     """Return a rendered :class:`QIcon` for the named glyph.
 
     ``name`` must be a key in the built-in icon set. The icon is rendered at
-    ``size`` pixels using ``color`` as the stroke color and cached for reuse.
+    ``size`` pixels using ``color`` as the stroke color (or the icon's
+    semantic color when ``color`` is ``None``) and cached for reuse.
     """
     if name not in _ICON_PATHS:
         raise KeyError(f"Unknown icon {name!r}")
-    key = (name, color, size)
+    stroke = color if color is not None else default_color(name)
+    key = (name, stroke, size)
     cached = _cache.get(key)
     if cached is not None:
         return cached
-    renderer = QSvgRenderer(_svg_for(name, color))
+    renderer = QSvgRenderer(_svg_for(name, stroke))
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
