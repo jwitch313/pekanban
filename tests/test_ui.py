@@ -89,6 +89,77 @@ def test_priority_colors_cover_all_priorities(qapp) -> None:
     assert set(PRIORITY_COLORS) == set(Priority)
 
 
+def test_card_priority_button_emits_signal(qapp) -> None:
+    """Selecting a priority from the card menu emits priority_changed."""
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    emitted: list[tuple[int, object]] = []
+    card.priority_changed.connect(lambda tid, prio: emitted.append((tid, prio)))
+    card._priority_actions[Priority.URGENT].trigger()
+    assert emitted == [(5, Priority.URGENT)]
+
+
+def test_card_priority_actions_exclusive(qapp) -> None:
+    """The card's priority actions behave like radio buttons."""
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    assert card._priority_actions[Priority.LOW].isChecked()
+    card._priority_actions[Priority.HIGH].trigger()
+    assert card._priority_actions[Priority.HIGH].isChecked()
+    assert not card._priority_actions[Priority.LOW].isChecked()
+
+
+def test_change_task_priority_persists(window: MainWindow) -> None:
+    """Changing a task's priority updates and persists it."""
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Priority task")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+    window._on_priority_changed(task.id, Priority.URGENT)
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    assert board.columns[0].tasks[0].priority is Priority.URGENT
+
+
+def test_card_due_set_emits_date(qapp) -> None:
+    """Confirming a picked due date emits due_date_changed with that date."""
+    from PySide6.QtCore import QDate
+    from PySide6.QtWidgets import QDateEdit
+
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    emitted: list[tuple[int, object]] = []
+    card.due_date_changed.connect(lambda tid, d: emitted.append((tid, d)))
+    card._due_picker = QDateEdit()
+    card._due_picker.setDate(QDate(2025, 6, 15))
+    card._on_set_due()
+    assert emitted == [(5, date(2025, 6, 15))]
+
+
+def test_card_due_clear_emits_none(qapp) -> None:
+    """Clearing the due date emits due_date_changed with None."""
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    emitted: list[tuple[int, object]] = []
+    card.due_date_changed.connect(lambda tid, d: emitted.append((tid, d)))
+    card._on_clear_due()
+    assert emitted == [(5, None)]
+
+
+def test_set_due_date_persists(window: MainWindow) -> None:
+    """Setting a task's due date updates and persists it."""
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Due task")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+    window._on_due_date_changed(task.id, date(2025, 6, 15))
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    assert board.columns[0].tasks[0].due_date == date(2025, 6, 15)
+
+
 def test_all_buttons_have_icons(window: MainWindow) -> None:
     """Every button in the UI must carry a relevant icon."""
     from PySide6.QtWidgets import QPushButton

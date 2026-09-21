@@ -12,6 +12,8 @@ from datetime import date
 
 from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
 from PySide6.QtGui import (
+    QAction,
+    QActionGroup,
     QBrush,
     QColor,
     QDrag,
@@ -23,6 +25,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import (
     QCheckBox,
+    QDateEdit,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -115,6 +118,8 @@ class CardWidget(QFrame):
     subtask_added = Signal(int, str)  # task_id, title
     subtask_toggled = Signal(int)  # subtask_id
     subtask_deleted = Signal(int)  # subtask_id
+    priority_changed = Signal(int, object)  # task_id, Priority
+    due_date_changed = Signal(int, object)  # task_id, date | None
 
     def __init__(
         self,
@@ -128,6 +133,8 @@ class CardWidget(QFrame):
     ) -> None:
         super().__init__()
         self._task_id = task_id
+        self._priority = priority
+        self._due_date = due_date
         self._board_labels = list(board_labels or [])
         self._drag_start: QPoint | None = None
         self._overdue = False
@@ -162,6 +169,23 @@ class CardWidget(QFrame):
             meta_row.addWidget(due_label)
 
         meta_row.addStretch(1)
+
+        self._priority_button = QPushButton()
+        self._priority_button.setIcon(icons.icon("flag"))
+        self._priority_button.setFixedWidth(24)
+        self._priority_button.setAccessibleName("Change priority")
+        self._priority_button.setToolTip("Change priority")
+        self._priority_button.setMenu(self._build_priority_menu())
+        meta_row.addWidget(self._priority_button)
+
+        self._due_button = QPushButton()
+        self._due_button.setIcon(icons.icon("calendar"))
+        self._due_button.setFixedWidth(24)
+        self._due_button.setAccessibleName("Set due date")
+        self._due_button.setToolTip("Set due date")
+        self._due_button.clicked.connect(self._show_due_date_picker)
+        meta_row.addWidget(self._due_button)
+
         delete_button = QPushButton()
         delete_button.setIcon(icons.icon("trash"))
         delete_button.setFixedWidth(24)
@@ -266,6 +290,68 @@ class CardWidget(QFrame):
             return
         self.subtask_added.emit(self._task_id, title)
         self._subtask_edit.clear()
+
+    # -- Priority ---------------------------------------------------------
+    def _build_priority_menu(self) -> QMenu:
+        """Build an exclusive menu of the four priority levels."""
+        menu = QMenu(self)
+        group = QActionGroup(self)
+        group.setExclusive(True)
+
+        self._priority_actions: dict[Priority, QAction] = {}
+        for priority in Priority:
+            action = QAction(priority.value.capitalize(), self)
+            action.setCheckable(True)
+            action.setChecked(priority is self._priority)
+            group.addAction(action)
+            menu.addAction(action)
+            self._priority_actions[priority] = action
+            action.triggered.connect(
+                lambda _checked, p=priority: self.priority_changed.emit(self._task_id, p)
+            )
+        return menu
+
+    # -- Due date ---------------------------------------------------------
+    def _show_due_date_picker(self) -> None:
+        """Pop up a small date picker anchored to the card."""
+        from PySide6.QtCore import QDate
+
+        popup = QWidget()
+        popup.setWindowFlags(Qt.WindowType.Popup)
+        layout = QVBoxLayout(popup)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        self._due_picker = QDateEdit()
+        self._due_picker.setCalendarPopup(True)
+        self._due_picker.setDisplayFormat("yyyy-MM-dd")
+        if self._due_date is not None:
+            self._due_picker.setDate(
+                QDate(self._due_date.year, self._due_date.month, self._due_date.day)
+            )
+        layout.addWidget(self._due_picker)
+
+        button_row = QHBoxLayout()
+        set_button = QPushButton("Set")
+        set_button.setIcon(icons.icon("calendar"))
+        set_button.clicked.connect(self._on_set_due)
+        clear_button = QPushButton("Clear")
+        clear_button.setIcon(icons.icon("clear"))
+        clear_button.clicked.connect(self._on_clear_due)
+        button_row.addWidget(set_button)
+        button_row.addWidget(clear_button)
+        layout.addLayout(button_row)
+
+        popup.show()
+        popup.move(self.mapToGlobal(self.rect().bottomLeft()))
+
+    def _on_set_due(self) -> None:
+        """Emit the picked due date."""
+        self.due_date_changed.emit(self._task_id, self._due_picker.date().toPython())
+
+    def _on_clear_due(self) -> None:
+        """Request clearing the due date."""
+        self.due_date_changed.emit(self._task_id, None)
 
     # -- Labels -----------------------------------------------------------
     def _build_label_menu(self) -> QMenu:

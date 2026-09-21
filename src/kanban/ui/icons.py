@@ -38,6 +38,11 @@ _ICON_PATHS: dict[str, str] = {
     ),
     "moon": "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z",
     "monitor": "M2 3h20v14H2zM8 21h8M12 17v4",
+    "flag": "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
+    "calendar": (
+        "M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"
+        "M16 2v4M8 2v4M3 10h18"
+    ),
 }
 
 #: Rendered icons cached by (name, color, size) to avoid re-rendering.

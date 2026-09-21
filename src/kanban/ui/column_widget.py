@@ -59,6 +59,8 @@ class ColumnWidget(QFrame):
     subtask_added = Signal(int, str)  # task_id, title
     subtask_toggled = Signal(int)  # subtask_id
     subtask_deleted = Signal(int)  # subtask_id
+    priority_changed = Signal(int, object)  # task_id, Priority
+    due_date_changed = Signal(int, object)  # task_id, date | None
 
     def __init__(
         self,
@@ -143,6 +145,8 @@ class ColumnWidget(QFrame):
             card.subtask_added.connect(self.subtask_added)
             card.subtask_toggled.connect(self.subtask_toggled)
             card.subtask_deleted.connect(self.subtask_deleted)
+            card.priority_changed.connect(self.priority_changed)
+            card.due_date_changed.connect(self.due_date_changed)
             self._card_layout.addWidget(card)
         layout.addLayout(self._card_layout)
 
