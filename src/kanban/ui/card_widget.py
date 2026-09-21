@@ -140,6 +140,7 @@ class CardWidget(QFrame):
         self._overdue = False
         self._label_chips: list[LabelChip] = []
         self._subtask_rows: list[QCheckBox] = []
+        self._due_popup: QWidget | None = None
         self.setObjectName("card")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setAccessibleName(f"Task: {title}")
@@ -318,16 +319,28 @@ class CardWidget(QFrame):
 
     # -- Due date ---------------------------------------------------------
     def _show_due_date_picker(self) -> None:
-        """Pop up a small date picker anchored to the card."""
+        """Pop up a small date picker anchored to the card.
+
+        The popup is parented to the card and retained on ``self`` so it is
+        not garbage-collected (and closed) before the user can interact with
+        it. Clicking the button again toggles the popup closed.
+        """
         from PySide6.QtCore import QDate
 
-        popup = QWidget()
+        if self._due_popup is not None:
+            if self._due_popup.isVisible():
+                self._due_popup.hide()
+                return
+            self._due_popup.deleteLater()
+            self._due_popup = None
+
+        popup = QWidget(self)
         popup.setWindowFlags(Qt.WindowType.Popup)
         layout = QVBoxLayout(popup)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        self._due_picker = QDateEdit()
+        self._due_picker = QDateEdit(popup)
         self._due_picker.setCalendarPopup(True)
         self._due_picker.setDisplayFormat("yyyy-MM-dd")
         if self._due_date is not None:
@@ -337,26 +350,34 @@ class CardWidget(QFrame):
         layout.addWidget(self._due_picker)
 
         button_row = QHBoxLayout()
-        set_button = QPushButton("Set")
+        set_button = QPushButton("Set", popup)
         set_button.setIcon(icons.icon("calendar"))
         set_button.clicked.connect(self._on_set_due)
-        clear_button = QPushButton("Clear")
+        clear_button = QPushButton("Clear", popup)
         clear_button.setIcon(icons.icon("clear"))
         clear_button.clicked.connect(self._on_clear_due)
         button_row.addWidget(set_button)
         button_row.addWidget(clear_button)
         layout.addLayout(button_row)
 
+        self._due_popup = popup
         popup.show()
         popup.move(self.mapToGlobal(self.rect().bottomLeft()))
 
     def _on_set_due(self) -> None:
-        """Emit the picked due date."""
+        """Emit the picked due date and close the picker."""
         self.due_date_changed.emit(self._task_id, self._due_picker.date().toPython())
+        self._close_due_picker()
 
     def _on_clear_due(self) -> None:
-        """Request clearing the due date."""
+        """Request clearing the due date and close the picker."""
         self.due_date_changed.emit(self._task_id, None)
+        self._close_due_picker()
+
+    def _close_due_picker(self) -> None:
+        """Hide the due-date popup if it is open."""
+        if self._due_popup is not None:
+            self._due_popup.hide()
 
     # -- Labels -----------------------------------------------------------
     def _build_label_menu(self) -> QMenu:

@@ -173,6 +173,21 @@ def test_card_due_set_emits_date(qapp) -> None:
     assert emitted == [(5, date(2025, 6, 15))]
 
 
+def test_due_date_picker_popup_is_retained(qapp) -> None:
+    """The due-date popup must be retained so it stays visible after the click."""
+    import gc
+
+    from PySide6.QtWidgets import QDateEdit, QWidget
+
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    card._show_due_date_picker()
+    gc.collect()
+    assert isinstance(card._due_popup, QWidget)
+    assert card._due_popup.isVisible()
+    assert isinstance(card._due_picker, QDateEdit)
+    assert card._due_picker.calendarPopup()
+
+
 def test_card_due_clear_emits_none(qapp) -> None:
     """Clearing the due date emits due_date_changed with None."""
     card = CardWidget(5, "Task", Priority.LOW, None)
