@@ -18,8 +18,11 @@ from kanban.services.database import Database
 class SettingsService:
     """Read and write validated application settings."""
 
-    KNOWN_KEYS = frozenset({"theme", "active_view", "last_board_id", "window_geometry"})
+    KNOWN_KEYS = frozenset(
+        {"theme", "theme_mode", "active_view", "last_board_id", "window_geometry"}
+    )
     VALID_THEME = frozenset({"light", "dark"})
+    VALID_THEME_MODE = frozenset({"system", "light", "dark"})
     VALID_VIEW = frozenset({"kanban", "calendar", "gantt", "dashboard"})
 
     def __init__(self, database: Database) -> None:
@@ -75,6 +78,19 @@ class SettingsService:
         """Set the theme to ``light`` or ``dark``."""
         self.set("theme", mode)
 
+    def theme_mode(self) -> str:
+        """Theme preference (``system``, ``light``, or ``dark``).
+
+        Defaults to ``system`` so the app follows the OS theme until the user
+        explicitly overrides it.
+        """
+        value = self.get("theme_mode")
+        return "system" if value is None else value
+
+    def set_theme_mode(self, mode: str) -> None:
+        """Set the theme preference to ``system``, ``light``, or ``dark``."""
+        self.set("theme_mode", mode)
+
     def active_view(self) -> str:
         """Current view mode, defaulting to ``kanban``."""
         value = self.get("active_view")
@@ -114,6 +130,8 @@ class SettingsService:
     def _validate(cls, key: str, value: str) -> None:
         if key == "theme" and value not in cls.VALID_THEME:
             raise ValueError(f"Invalid theme {value!r}")
+        if key == "theme_mode" and value not in cls.VALID_THEME_MODE:
+            raise ValueError(f"Invalid theme mode {value!r}")
         if key == "active_view" and value not in cls.VALID_VIEW:
             raise ValueError(f"Invalid view {value!r}")
         if key == "last_board_id":

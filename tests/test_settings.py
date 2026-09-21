@@ -94,3 +94,21 @@ def test_typed_defaults(service: SettingsService) -> None:
 def test_window_geometry_roundtrip(service: SettingsService) -> None:
     service.set_window_geometry("0,0,1280,720")
     assert service.window_geometry() == "0,0,1280,720"
+
+
+def test_theme_mode_defaults_to_system(service: SettingsService) -> None:
+    assert service.theme_mode() == "system"
+
+
+def test_theme_mode_roundtrip(service: SettingsService) -> None:
+    service.set_theme_mode("dark")
+    assert service.theme_mode() == "dark"
+    service.set_theme_mode("light")
+    assert service.theme_mode() == "light"
+    service.set_theme_mode("system")
+    assert service.theme_mode() == "system"
+
+
+def test_invalid_theme_mode_raises(service: SettingsService) -> None:
+    with pytest.raises(ValueError):
+        service.set("theme_mode", "neon")

@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from kanban.models import Board
+from kanban.ui import icons
 from kanban.ui.column_widget import ColumnWidget
 
 
@@ -39,6 +40,7 @@ class BoardView(QScrollArea):
         self.setFrameShape(QFrame.Shape.NoFrame)
 
         container = QWidget()
+        container.setObjectName("boardView")
         self._column_layout = QHBoxLayout(container)
         self._column_layout.setContentsMargins(12, 12, 12, 12)
         self._column_layout.setSpacing(12)
@@ -57,9 +59,14 @@ class BoardView(QScrollArea):
         edit.setPlaceholderText("Add a column…")
         edit.returnPressed.connect(self._submit_new_column)
         layout.addWidget(edit)
-        button = QPushButton("+ Add column")
+        button = QPushButton("Add column")
+        button.setIcon(icons.icon("plus"))
+        button.setAccessibleName("Add column")
+        button.setToolTip("Add a new column")
         button.clicked.connect(self._submit_new_column)
         layout.addWidget(button)
+        # Keep the control pinned to the top of the board (not centered).
+        layout.addStretch(1)
         self._column_edit = edit
         return row
 

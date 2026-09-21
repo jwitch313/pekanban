@@ -4,15 +4,17 @@ from __future__ import annotations
 
 
 def main() -> int:
-    """Create the Qt application, show the main window, and run the loop."""
+    """Create the Qt application, show the main window, and run the loop.
+
+    Theme application is owned by :class:`MainWindow`, which applies the
+    user's stored preference (system/light/dark) during construction.
+    """
     from PySide6.QtWidgets import QApplication
 
     from kanban.main_window import MainWindow
-    from kanban.ui.theme import apply_theme, detect_system_theme
 
     app = QApplication([])
     app.setApplicationName("KanBan")
-    apply_theme(app, detect_system_theme())
     window = MainWindow()
     window.show()
     return app.exec()

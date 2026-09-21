@@ -10,7 +10,7 @@ to the :class:`~kanban.services.task_service.TaskService`.
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
 )
+
+from kanban.ui import icons
 
 #: Preset label colors offered in the color picker.
 PRESET_COLORS: list[str] = [
@@ -69,22 +71,26 @@ class LabelPanel(QFrame):
         self._color_combo = QComboBox()
         self._color_combo.setAccessibleName("Label color")
         for color in PRESET_COLORS:
-            self._color_combo.addItem(color, color)
+            self._color_combo.addItem(self._swatch_icon(color), color, color)
         self._color_combo.setStyleSheet(
             "QComboBox { padding: 2px; }"
             "QComboBox QAbstractItemView { background-color: #ffffff; }"
         )
         add_row.addWidget(self._color_combo)
 
-        add_button = QPushButton("+")
+        add_button = QPushButton()
+        add_button.setIcon(icons.icon("plus"))
         add_button.setFixedWidth(28)
         add_button.setAccessibleName("Add label")
+        add_button.setToolTip("Add label")
         add_button.clicked.connect(self._submit_new_label)
         add_row.addWidget(add_button)
         layout.addLayout(add_row)
 
-        delete_button = QPushButton("✕ Delete label")
+        delete_button = QPushButton("Delete label")
+        delete_button.setIcon(icons.icon("trash"))
         delete_button.setAccessibleName("Delete label")
+        delete_button.setToolTip("Delete label")
         delete_button.clicked.connect(self._delete_label)
         layout.addWidget(delete_button)
 
@@ -107,14 +113,30 @@ class LabelPanel(QFrame):
             self.label_deleted.emit(label_id)
 
     def load_labels(self, labels: list[tuple[int, str, str | None]]) -> None:
-        """Populate the label list from ``(id, name, color)`` tuples."""
+        """Populate the label list from ``(id, name, color)`` tuples.
+
+        Each row shows the label name (in the default, readable foreground)
+        alongside a small color swatch icon so the color is visible at a glance.
+        """
         self._list.blockSignals(True)
         self._list.clear()
         for label_id, name, color in labels:
             item = QListWidgetItem(name)
             item.setData(Qt.ItemDataRole.UserRole, label_id)
             swatch = color if color else "#888888"
-            item.setForeground(Qt.GlobalColor.transparent)
-            item.setBackground(QColor(swatch))
+            item.setIcon(self._swatch_icon(swatch))
             self._list.addItem(item)
         self._list.blockSignals(False)
+
+    @staticmethod
+    def _swatch_icon(color: str) -> QIcon:
+        """Build a small rounded color swatch icon for the given hex color."""
+        pixmap = QPixmap(14, 14)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(QColor("#8a8f98"), 1))
+        painter.setBrush(QColor(color))
+        painter.drawRoundedRect(1, 1, 12, 12, 3, 3)
+        painter.end()
+        return QIcon(pixmap)

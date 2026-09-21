@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from kanban.models import Board
+from kanban.ui import icons
 from kanban.ui.label_panel import LabelPanel
 
 
@@ -55,14 +56,18 @@ class Sidebar(QFrame):
         layout.addWidget(self._list, 1)
 
         action_row = QHBoxLayout()
-        rename_button = QPushButton("✎")
+        rename_button = QPushButton()
+        rename_button.setIcon(icons.icon("pencil"))
         rename_button.setFixedWidth(28)
         rename_button.setAccessibleName("Rename board")
+        rename_button.setToolTip("Rename board")
         rename_button.clicked.connect(self._start_rename)
         action_row.addWidget(rename_button)
-        delete_button = QPushButton("✕")
+        delete_button = QPushButton()
+        delete_button.setIcon(icons.icon("trash"))
         delete_button.setFixedWidth(28)
         delete_button.setAccessibleName("Delete board")
+        delete_button.setToolTip("Delete board")
         delete_button.clicked.connect(self._delete_board)
         action_row.addWidget(delete_button)
         action_row.addStretch(1)
@@ -73,9 +78,11 @@ class Sidebar(QFrame):
         self._name_edit.setPlaceholderText("New board…")
         self._name_edit.returnPressed.connect(self._submit_new_board)
         add_row.addWidget(self._name_edit)
-        add_button = QPushButton("+")
+        add_button = QPushButton()
+        add_button.setIcon(icons.icon("plus"))
         add_button.setFixedWidth(28)
         add_button.setAccessibleName("Add board")
+        add_button.setToolTip("Add board")
         add_button.clicked.connect(self._submit_new_board)
         add_row.addWidget(add_button)
         layout.addLayout(add_row)

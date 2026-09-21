@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date
 from typing import cast
 
-from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
+from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from kanban.models import Board, Priority
 from kanban.services.database import Database, create_database
+from kanban.services.settings_service import SettingsService
 from kanban.services.task_service import TaskService
 from kanban.services.undo_redo import (
     CreateTaskCommand,
@@ -28,9 +29,11 @@ from kanban.services.undo_redo import (
     MoveTaskCommand,
     UndoRedoService,
 )
+from kanban.ui import icons
 from kanban.ui.board_view import BoardView
 from kanban.ui.search_bar import Filters, SearchBar
 from kanban.ui.sidebar import Sidebar
+from kanban.ui.theme import apply_theme, resolve_theme_mode
 
 
 class MainWindow(QMainWindow):
@@ -42,11 +45,13 @@ class MainWindow(QMainWindow):
         self._database.init_db()
         self._service = TaskService(self._database)
         self._undo = UndoRedoService(self._service)
+        self._settings = SettingsService(self._database)
         self._current_board_id: int | None = None
         self._filters: Filters = {}
 
         self.setWindowTitle("KanBan")
         self.resize(1100, 700)
+        self._apply_theme(self._settings.theme_mode())
 
         central = QWidget()
         layout = QHBoxLayout(central)
@@ -87,6 +92,7 @@ class MainWindow(QMainWindow):
         self._board_view.subtask_deleted.connect(self._on_subtask_deleted)
         self._search_bar.filters_changed.connect(self._apply_filters)
 
+        self._setup_theme_menu()
         self._setup_shortcuts()
 
         self._refresh_sidebar()
@@ -114,12 +120,8 @@ class MainWindow(QMainWindow):
             visible = self._compute_visible_task_ids(board)
             self._board_view.load_board(board, visible)
             self._refresh_labels()
-            self._search_bar.load_columns(
-                [(column.id, column.title) for column in board.columns]
-            )
-            self._search_bar.load_labels(
-                [(label.id, label.name) for label in board.labels]
-            )
+            self._search_bar.load_columns([(column.id, column.title) for column in board.columns])
+            self._search_bar.load_labels([(label.id, label.name) for label in board.labels])
 
     def _is_active(self, filters: Filters) -> bool:
         """Return True if any filter in ``filters`` is set to a non-default value."""
@@ -277,6 +279,46 @@ class MainWindow(QMainWindow):
         """Clear the active filters and reset the search bar (no re-render)."""
         self._filters = {}
         self._search_bar.reset()
+
+    # -- Theme ------------------------------------------------------------
+    def _apply_theme(self, mode: str) -> None:
+        """Resolve a stored theme preference and apply it to the app."""
+        app = QApplication.instance()
+        if app is not None:
+            apply_theme(cast("QApplication", app), resolve_theme_mode(mode))
+
+    def _setup_theme_menu(self) -> None:
+        """Add a View menu with an exclusive System/Light/Dark theme selector.
+
+        The three actions behave like radio buttons: exactly one is checked,
+        and the selection is persisted so it survives relaunches.
+        """
+        view_menu = self.menuBar().addMenu("View")
+        theme_menu = view_menu.addMenu("Theme")
+        group = QActionGroup(self)
+        group.setExclusive(True)
+
+        self._theme_actions: dict[str, QAction] = {}
+        for mode, label, icon_name in (
+            ("system", "System", "monitor"),
+            ("light", "Light", "sun"),
+            ("dark", "Dark", "moon"),
+        ):
+            action = QAction(icons.icon(icon_name), label, self)
+            action.setCheckable(True)
+            group.addAction(action)
+            theme_menu.addAction(action)
+            self._theme_actions[mode] = action
+            action.triggered.connect(lambda _checked, m=mode: self._on_theme_selected(m))
+
+        current = self._settings.theme_mode()
+        if current in self._theme_actions:
+            self._theme_actions[current].setChecked(True)
+
+    def _on_theme_selected(self, mode: str) -> None:
+        """Persist the chosen theme preference and re-apply it immediately."""
+        self._settings.set_theme_mode(mode)
+        self._apply_theme(mode)
 
     # -- Keyboard shortcuts ----------------------------------------------
     def _setup_shortcuts(self) -> None:

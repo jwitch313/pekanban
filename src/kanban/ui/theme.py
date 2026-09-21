@@ -60,6 +60,25 @@ QScrollBar:horizontal { background: transparent; height: 12px; margin: 0; }
 QScrollBar::handle:horizontal { background: #c4c9d0; border-radius: 6px; min-width: 24px; }
 QScrollBar::handle:horizontal:hover { background: #a9b0b9; }
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+#boardView { background-color: #e6e8ec; }
+#column {
+    background-color: #eef0f3;
+    border: 1px solid #dfe2e7;
+    border-radius: 10px;
+}
+#columnTitle { color: #1f2328; font-weight: bold; font-size: 14px; }
+#card {
+    background-color: #ffffff;
+    border: 1px solid #dfe2e7;
+    border-radius: 8px;
+}
+#sidebar { background-color: #f0f2f5; border-right: 1px solid #dfe2e7; }
+#sidebarHeader { color: #1f2328; font-weight: bold; font-size: 13px; }
+#searchBar { background-color: #f5f6f8; border-bottom: 1px solid #dfe2e7; }
+#labelPanel { background-color: #f0f2f5; }
+#priorityBadge { font-weight: bold; }
+#dueDate { color: #5a6068; }
+#subtaskHeader { color: #5a6068; font-weight: bold; font-size: 11px; }
 """
 
 DARK_QSS = """
@@ -101,6 +120,25 @@ QScrollBar:horizontal { background: transparent; height: 12px; margin: 0; }
 QScrollBar::handle:horizontal { background: #45464c; border-radius: 6px; min-width: 24px; }
 QScrollBar::handle:horizontal:hover { background: #5a5b62; }
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+#boardView { background-color: #1a1b1e; }
+#column {
+    background-color: #232428;
+    border: 1px solid #303136;
+    border-radius: 10px;
+}
+#columnTitle { color: #e6e6e6; font-weight: bold; font-size: 14px; }
+#card {
+    background-color: #2c2d31;
+    border: 1px solid #3a3b40;
+    border-radius: 8px;
+}
+#sidebar { background-color: #202124; border-right: 1px solid #303136; }
+#sidebarHeader { color: #e6e6e6; font-weight: bold; font-size: 13px; }
+#searchBar { background-color: #1e1f22; border-bottom: 1px solid #303136; }
+#labelPanel { background-color: #202124; }
+#priorityBadge { font-weight: bold; }
+#dueDate { color: #9aa0a8; }
+#subtaskHeader { color: #9aa0a8; font-weight: bold; font-size: 11px; }
 """
 
 
@@ -146,6 +184,20 @@ def detect_system_theme() -> ThemeMode:
     if override in {"dark", "light"}:
         return ThemeMode(override)
     return ThemeMode.LIGHT
+
+
+def resolve_theme_mode(mode: str) -> ThemeMode:
+    """Resolve a stored theme preference to a concrete :class:`ThemeMode`.
+
+    ``system`` defers to the OS-level detection; ``light`` and ``dark`` are
+    used directly. Any other value raises :class:`ValueError`.
+    """
+    if mode == "system":
+        return detect_system_theme()
+    try:
+        return ThemeMode(mode)
+    except ValueError:
+        raise ValueError(f"Invalid theme mode {mode!r}") from None
 
 
 def apply_theme(app: QtWidgets.QApplication, mode: ThemeMode) -> None:

@@ -11,7 +11,16 @@ from __future__ import annotations
 from datetime import date
 
 from PySide6.QtCore import QMimeData, QPoint, Qt, Signal
-from PySide6.QtGui import QDrag, QMouseEvent
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QDrag,
+    QIcon,
+    QMouseEvent,
+    QPainter,
+    QPen,
+    QPixmap,
+)
 from PySide6.QtWidgets import (
     QCheckBox,
     QFrame,
@@ -25,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from kanban.models import Priority
+from kanban.ui import icons
 
 #: MIME type used to identify a Kanban task during a drag operation.
 KANBAN_TASK_MIME = "application/x-kanban-task"
@@ -63,6 +73,7 @@ class LabelChip(QPushButton):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAccessibleName(f"Label: {name}")
         self.setToolTip(f"Remove label {name}")
+        self.setIcon(self._swatch_icon(color))
         self.setStyleSheet(self._chip_style(color))
         self.clicked.connect(lambda: self.remove_requested.emit(self._label_id))
 
@@ -70,6 +81,19 @@ class LabelChip(QPushButton):
     def label_id(self) -> int:
         """The database id of the label this chip represents."""
         return self._label_id
+
+    @staticmethod
+    def _swatch_icon(color: str | None) -> QIcon:
+        """Build a small filled swatch icon in the label's color."""
+        pixmap = QPixmap(12, 12)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(QColor("#ffffff"), 1))
+        painter.setBrush(QBrush(QColor(color if color else DEFAULT_LABEL_COLOR)))
+        painter.drawEllipse(1, 1, 10, 10)
+        painter.end()
+        return QIcon(pixmap)
 
     @staticmethod
     def _chip_style(color: str | None) -> str:
@@ -138,9 +162,11 @@ class CardWidget(QFrame):
             meta_row.addWidget(due_label)
 
         meta_row.addStretch(1)
-        delete_button = QPushButton("✕")
+        delete_button = QPushButton()
+        delete_button.setIcon(icons.icon("trash"))
         delete_button.setFixedWidth(24)
         delete_button.setAccessibleName("Delete task")
+        delete_button.setToolTip("Delete task")
         delete_button.clicked.connect(lambda: self.delete_requested.emit(self._task_id))
         meta_row.addWidget(delete_button)
 
@@ -156,7 +182,8 @@ class CardWidget(QFrame):
             self._label_row.addWidget(chip)
             self._label_chips.append(chip)
 
-        label_button = QPushButton("🏷")
+        label_button = QPushButton()
+        label_button.setIcon(icons.icon("tag"))
         label_button.setFixedWidth(24)
         label_button.setAccessibleName("Assign label")
         label_button.setToolTip("Assign a label")
@@ -204,9 +231,11 @@ class CardWidget(QFrame):
                 lambda _checked, sid=subtask_id: self.subtask_toggled.emit(sid)
             )
             row.addWidget(checkbox, 1)
-            delete_button = QPushButton("✕")
+            delete_button = QPushButton()
+            delete_button.setIcon(icons.icon("trash"))
             delete_button.setFixedWidth(20)
             delete_button.setAccessibleName(f"Delete subtask: {subtask_title}")
+            delete_button.setToolTip(f"Delete subtask: {subtask_title}")
             delete_button.clicked.connect(
                 lambda _checked=False, sid=subtask_id: self.subtask_deleted.emit(sid)
             )
@@ -220,9 +249,11 @@ class CardWidget(QFrame):
         self._subtask_edit.setPlaceholderText("Add subtask…")
         self._subtask_edit.returnPressed.connect(self._submit_new_subtask)
         add_row.addWidget(self._subtask_edit, 1)
-        add_button = QPushButton("+")
+        add_button = QPushButton()
+        add_button.setIcon(icons.icon("plus"))
         add_button.setFixedWidth(24)
         add_button.setAccessibleName("Add subtask")
+        add_button.setToolTip("Add subtask")
         add_button.clicked.connect(self._submit_new_subtask)
         add_row.addWidget(add_button)
         layout.addLayout(add_row)

@@ -17,10 +17,12 @@ from PySide6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
 )
 
 from kanban.models import Priority
+from kanban.ui import icons
 from kanban.ui.card_widget import KANBAN_TASK_MIME, CardWidget, LabelSpec
 
 #: A task as rendered in a column: id, title, priority, due date, labels,
@@ -73,6 +75,9 @@ class ColumnWidget(QFrame):
         self.setObjectName("column")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setAcceptDrops(True)
+        # Fill the board height so the heading stays at the top even when the
+        # column is empty or has few cards (Trello-style layout).
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -94,21 +99,27 @@ class ColumnWidget(QFrame):
 
         header.addStretch(1)
 
-        left_button = QPushButton("◀")
+        left_button = QPushButton()
+        left_button.setIcon(icons.icon("arrow_left"))
         left_button.setFixedWidth(24)
         left_button.setAccessibleName("Move column left")
+        left_button.setToolTip("Move column left")
         left_button.clicked.connect(self._move_left)
         header.addWidget(left_button)
 
-        right_button = QPushButton("▶")
+        right_button = QPushButton()
+        right_button.setIcon(icons.icon("arrow_right"))
         right_button.setFixedWidth(24)
         right_button.setAccessibleName("Move column right")
+        right_button.setToolTip("Move column right")
         right_button.clicked.connect(self._move_right)
         header.addWidget(right_button)
 
-        delete_button = QPushButton("✕")
+        delete_button = QPushButton()
+        delete_button.setIcon(icons.icon("trash"))
         delete_button.setFixedWidth(24)
         delete_button.setAccessibleName("Delete column")
+        delete_button.setToolTip("Delete column")
         delete_button.clicked.connect(self._delete_column)
         header.addWidget(delete_button)
 
@@ -135,14 +146,19 @@ class ColumnWidget(QFrame):
             self._card_layout.addWidget(card)
         layout.addLayout(self._card_layout)
 
+        # Push the add-task row to the bottom of the column.
+        layout.addStretch(1)
+
         add_row = QHBoxLayout()
         self._add_edit = QLineEdit()
         self._add_edit.setPlaceholderText("Add a task…")
         self._add_edit.returnPressed.connect(self._submit_new_task)
         add_row.addWidget(self._add_edit)
-        add_button = QPushButton("+")
+        add_button = QPushButton()
+        add_button.setIcon(icons.icon("plus"))
         add_button.setFixedWidth(28)
         add_button.setAccessibleName("Add task")
+        add_button.setToolTip("Add task")
         add_button.clicked.connect(self._submit_new_task)
         add_row.addWidget(add_button)
         layout.addLayout(add_row)

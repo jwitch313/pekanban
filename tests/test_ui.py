@@ -89,6 +89,58 @@ def test_priority_colors_cover_all_priorities(qapp) -> None:
     assert set(PRIORITY_COLORS) == set(Priority)
 
 
+def test_all_buttons_have_icons(window: MainWindow) -> None:
+    """Every button in the UI must carry a relevant icon."""
+    from PySide6.QtWidgets import QPushButton
+
+    # Add a task and a label chip so card-level buttons are exercised.
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Icon check")
+    label = window._service.create_label(window._current_board_id, "Bug", "#d9534f")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+    window._service.assign_label(task.id, label.id)
+    window._load_current_board()
+
+    buttons = window.findChildren(QPushButton)
+    assert buttons, "expected at least one button in the UI"
+    for button in buttons:
+        assert not button.icon().isNull(), (
+            f"button {button.accessibleName() or button.text()!r} has no icon"
+        )
+
+
+def test_column_heading_stays_at_top(qapp) -> None:
+    """Empty/short columns must fill the board height with the heading on top."""
+    from PySide6.QtWidgets import QSizePolicy, QSpacerItem
+
+    column = ColumnWidget(1, "Empty", [])
+    # The column expands vertically so its heading sits at the top of the board.
+    assert column.sizePolicy().verticalPolicy() == QSizePolicy.Policy.Expanding
+    # A stretch pushes the add-task row to the bottom (Trello-style layout).
+    layout = column.layout()
+    assert layout is not None
+    spacers = [
+        layout.itemAt(i) for i in range(layout.count()) if isinstance(layout.itemAt(i), QSpacerItem)
+    ]
+    assert spacers, "expected a stretch between the cards and the add-task row"
+
+
+def test_board_add_column_row_top_aligned(qapp) -> None:
+    """The inline add-column control must be top-aligned, not centered."""
+    from PySide6.QtWidgets import QSpacerItem
+
+    view = BoardView()
+    layout = view._add_column_row.layout()
+    assert layout is not None
+    # A trailing stretch keeps the control pinned to the top of the board.
+    last = layout.itemAt(layout.count() - 1)
+    assert isinstance(last, QSpacerItem)
+
+
 def test_column_accepts_drop_and_emits_task_moved(qapp) -> None:
     column = ColumnWidget(
         5,
@@ -465,6 +517,35 @@ def test_label_panel_blank_name_ignored(qapp) -> None:
     assert added == []
 
 
+def test_label_panel_shows_names_and_swatch(qapp) -> None:
+    """Label names must be visible and each row carries a color swatch icon."""
+    from kanban.ui.label_panel import LabelPanel
+
+    panel = LabelPanel()
+    panel.load_labels([(1, "Bug", "#d9534f"), (2, "Feature", "#4a90d9")])
+    assert panel._list.count() == 2
+    for i in range(panel._list.count()):
+        item = panel._list.item(i)
+        assert item is not None
+        # The label name must be present and its foreground must be opaque.
+        assert item.text() != ""
+        assert item.foreground().color().alpha() != 0
+        # A color swatch icon must be attached so the color is visible at a glance.
+        assert not item.icon().isNull()
+
+
+def test_label_panel_color_combo_has_swatch_icons(qapp) -> None:
+    """Each color option must show a swatch icon while keeping the hex as data."""
+    from kanban.ui.label_panel import PRESET_COLORS, LabelPanel
+
+    panel = LabelPanel()
+    assert panel._color_combo.count() == len(PRESET_COLORS)
+    for i in range(panel._color_combo.count()):
+        icon = panel._color_combo.itemIcon(i)
+        assert icon is not None and not icon.isNull()
+        assert panel._color_combo.itemData(i) in PRESET_COLORS
+
+
 def test_window_label_crud(window: MainWindow) -> None:
     board_id = window._current_board_id
     assert board_id is not None
@@ -620,8 +701,16 @@ def test_window_query_filter_shows_matching_cards(window: MainWindow) -> None:
     window._on_task_added(column.id, "Alpha task")
     window._on_task_added(column.id, "Beta task")
 
-    window._apply_filters({"query": "alpha", "priority": None, "column_id": None,
-                           "label_id": None, "due_before": None, "due_after": None})
+    window._apply_filters(
+        {
+            "query": "alpha",
+            "priority": None,
+            "column_id": None,
+            "label_id": None,
+            "due_before": None,
+            "due_after": None,
+        }
+    )
 
     cards = window._board_view.widget().findChildren(CardWidget)
     assert len(cards) == 1
@@ -638,8 +727,16 @@ def test_window_priority_filter(window: MainWindow) -> None:
     window._service.create_task(column.id, "High task", priority=Priority.HIGH)
     window._load_current_board()
 
-    window._apply_filters({"query": "", "priority": Priority.HIGH, "column_id": None,
-                           "label_id": None, "due_before": None, "due_after": None})
+    window._apply_filters(
+        {
+            "query": "",
+            "priority": Priority.HIGH,
+            "column_id": None,
+            "label_id": None,
+            "due_before": None,
+            "due_after": None,
+        }
+    )
 
     cards = window._board_view.widget().findChildren(CardWidget)
     assert len(cards) == 1
@@ -655,8 +752,16 @@ def test_window_clear_filters_restores_all(window: MainWindow) -> None:
     window._on_task_added(column.id, "Alpha")
     window._on_task_added(column.id, "Beta")
 
-    window._apply_filters({"query": "alpha", "priority": None, "column_id": None,
-                           "label_id": None, "due_before": None, "due_after": None})
+    window._apply_filters(
+        {
+            "query": "alpha",
+            "priority": None,
+            "column_id": None,
+            "label_id": None,
+            "due_before": None,
+            "due_after": None,
+        }
+    )
     assert len(window._board_view.widget().findChildren(CardWidget)) == 1
 
     window._search_bar.clear()
@@ -672,10 +777,70 @@ def test_window_board_switch_resets_filters(window: MainWindow) -> None:
     window._on_task_added(column.id, "Alpha")
     window._on_task_added(column.id, "Beta")
 
-    window._apply_filters({"query": "alpha", "priority": None, "column_id": None,
-                           "label_id": None, "due_before": None, "due_after": None})
+    window._apply_filters(
+        {
+            "query": "alpha",
+            "priority": None,
+            "column_id": None,
+            "label_id": None,
+            "due_before": None,
+            "due_after": None,
+        }
+    )
     assert len(window._board_view.widget().findChildren(CardWidget)) == 1
 
     window._on_board_added("Second")
     assert window._search_bar.build_filters()["query"] == ""
     assert window._filters == {}
+
+
+def test_theme_menu_present(window: MainWindow) -> None:
+    """A View menu must expose System/Light/Dark theme actions."""
+    from PySide6.QtGui import QAction
+
+    actions = window._theme_actions
+    assert set(actions) == {"system", "light", "dark"}
+    for action in actions.values():
+        assert isinstance(action, QAction)
+        assert action.isCheckable()
+
+
+def test_theme_actions_are_exclusive(window: MainWindow) -> None:
+    """Theme actions must behave like radio buttons (one checked at a time)."""
+    window._theme_actions["dark"].trigger()
+    assert window._theme_actions["dark"].isChecked()
+    assert not window._theme_actions["light"].isChecked()
+    assert not window._theme_actions["system"].isChecked()
+
+
+def test_select_dark_theme_applies_and_persists(window: MainWindow) -> None:
+    """Choosing Dark applies the dark stylesheet and persists the choice."""
+    from PySide6.QtWidgets import QApplication
+
+    from kanban.ui.theme import DARK_QSS
+
+    window._theme_actions["dark"].trigger()
+    assert QApplication.instance().styleSheet() == DARK_QSS
+    assert window._settings.theme_mode() == "dark"
+
+
+def test_select_light_theme_applies_and_persists(window: MainWindow) -> None:
+    """Choosing Light applies the light stylesheet and persists the choice."""
+    from PySide6.QtWidgets import QApplication
+
+    from kanban.ui.theme import LIGHT_QSS
+
+    window._theme_actions["light"].trigger()
+    assert QApplication.instance().styleSheet() == LIGHT_QSS
+    assert window._settings.theme_mode() == "light"
+
+
+def test_select_system_theme_persists(window: MainWindow) -> None:
+    """Choosing System persists the choice and re-applies the detected theme."""
+    from PySide6.QtWidgets import QApplication
+
+    from kanban.ui.theme import DARK_QSS, LIGHT_QSS
+
+    window._theme_actions["system"].trigger()
+    assert window._settings.theme_mode() == "system"
+    assert QApplication.instance().styleSheet() in {LIGHT_QSS, DARK_QSS}

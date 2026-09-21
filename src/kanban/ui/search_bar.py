@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from kanban.models import Priority
+from kanban.ui import icons
 
 #: A dictionary of active search/filter criteria.
 Filters = dict[str, object]
@@ -88,7 +89,9 @@ class SearchBar(QFrame):
         self._set_due_enabled(False)
 
         clear_button = QPushButton("Clear")
+        clear_button.setIcon(icons.icon("clear"))
         clear_button.setAccessibleName("Clear filters")
+        clear_button.setToolTip("Clear filters")
         clear_button.clicked.connect(self.clear)
         layout.addWidget(clear_button)
 
