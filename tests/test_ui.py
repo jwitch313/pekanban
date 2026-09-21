@@ -188,6 +188,23 @@ def test_due_date_picker_popup_is_retained(qapp) -> None:
     assert card._due_picker.calendarPopup()
 
 
+def test_due_date_picker_popup_is_opaque_in_light_theme(qapp) -> None:
+    """The due-date popup must render with an opaque, theme-matched background."""
+    from kanban.ui.theme import LIGHT_QSS
+
+    previous = qapp.styleSheet()
+    try:
+        qapp.setStyleSheet(LIGHT_QSS)
+        card = CardWidget(5, "Task", Priority.LOW, None)
+        card.show()
+        card._show_due_date_picker()
+        qapp.processEvents()
+        corner = card._due_popup.grab().toImage().pixelColor(0, 0)
+        assert corner.alpha() > 0, "due-date popup background is transparent"
+    finally:
+        qapp.setStyleSheet(previous)
+
+
 def test_card_due_clear_emits_none(qapp) -> None:
     """Clearing the due date emits due_date_changed with None."""
     card = CardWidget(5, "Task", Priority.LOW, None)

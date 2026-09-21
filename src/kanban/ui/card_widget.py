@@ -321,9 +321,12 @@ class CardWidget(QFrame):
     def _show_due_date_picker(self) -> None:
         """Pop up a small date picker anchored to the card.
 
-        The popup is parented to the card and retained on ``self`` so it is
-        not garbage-collected (and closed) before the user can interact with
-        it. Clicking the button again toggles the popup closed.
+        The popup is a top-level window retained on ``self`` so it is not
+        garbage-collected (and closed) before the user can interact with it.
+        It is deliberately *not* parented to the card: the card's stylesheet
+        rule ``#card QWidget { background: transparent }`` would otherwise
+        make the popup and its calendar transparent. Clicking the button
+        again toggles the popup closed.
         """
         from PySide6.QtCore import QDate
 
@@ -334,13 +337,14 @@ class CardWidget(QFrame):
             self._due_popup.deleteLater()
             self._due_popup = None
 
-        popup = QWidget(self)
+        popup = QWidget()
         popup.setWindowFlags(Qt.WindowType.Popup)
+        self.destroyed.connect(popup.deleteLater)
         layout = QVBoxLayout(popup)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(6)
 
-        self._due_picker = QDateEdit(popup)
+        self._due_picker = QDateEdit()
         self._due_picker.setCalendarPopup(True)
         self._due_picker.setDisplayFormat("yyyy-MM-dd")
         if self._due_date is not None:
@@ -350,10 +354,10 @@ class CardWidget(QFrame):
         layout.addWidget(self._due_picker)
 
         button_row = QHBoxLayout()
-        set_button = QPushButton("Set", popup)
+        set_button = QPushButton("Set")
         set_button.setIcon(icons.icon("calendar"))
         set_button.clicked.connect(self._on_set_due)
-        clear_button = QPushButton("Clear", popup)
+        clear_button = QPushButton("Clear")
         clear_button.setIcon(icons.icon("clear"))
         clear_button.clicked.connect(self._on_clear_due)
         button_row.addWidget(set_button)

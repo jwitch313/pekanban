@@ -48,6 +48,13 @@ QComboBox QAbstractItemView {
     background-color: #ffffff; color: #1f2328;
     border: 1px solid #c4c9d0; selection-background-color: #e2e6ea;
 }
+QCalendarWidget, QCalendarWidget QAbstractItemView {
+    background-color: #ffffff; color: #1f2328;
+    border: 1px solid #c4c9d0;
+    selection-background-color: #2f6fed; selection-color: #ffffff;
+}
+QCalendarWidget QToolButton { background-color: #ffffff; color: #1f2328; border: none; }
+QCalendarWidget QToolButton::selected { background-color: #e2e6ea; }
 QCheckBox { color: #1f2328; spacing: 6px; }
 QCheckBox::indicator {
     width: 16px; height: 16px; border: 1px solid #c4c9d0;
@@ -114,6 +121,13 @@ QComboBox QAbstractItemView {
     background-color: #2c2d31; color: #e6e6e6;
     border: 1px solid #45464c; selection-background-color: #34353b;
 }
+QCalendarWidget, QCalendarWidget QAbstractItemView {
+    background-color: #2c2d31; color: #e6e6e6;
+    border: 1px solid #45464c;
+    selection-background-color: #2f6fed; selection-color: #ffffff;
+}
+QCalendarWidget QToolButton { background-color: #2c2d31; color: #e6e6e6; border: none; }
+QCalendarWidget QToolButton::selected { background-color: #34353b; }
 QCheckBox { color: #e6e6e6; spacing: 6px; }
 QCheckBox::indicator {
     width: 16px; height: 16px; border: 1px solid #45464c;
