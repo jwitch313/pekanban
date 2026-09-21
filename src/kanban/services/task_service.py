@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import or_, select
 
 from kanban.models import Board, BoardColumn, Label, Priority, Subtask, Task
+from kanban.models.task import MAX_TITLE_LENGTH
 from kanban.services.database import Database
 
 
@@ -217,7 +218,7 @@ class TaskService:
             if column is None:
                 raise LookupError(f"Column {column_id} does not exist")
             task = Task(
-                title=title,
+                title=title[:MAX_TITLE_LENGTH],
                 description=description,
                 priority=priority,
                 due_date=due_date,
@@ -258,6 +259,8 @@ class TaskService:
             for key, value in fields.items():
                 if not hasattr(task, key):
                     raise ValueError(f"Task has no field {key!r}")
+                if key == "title" and isinstance(value, str):
+                    value = value[:MAX_TITLE_LENGTH]
                 setattr(task, key, value)
             session.flush()
             return task

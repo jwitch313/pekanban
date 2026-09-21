@@ -54,6 +54,22 @@ def test_update_task_unknown_field_raises(service: TaskService) -> None:
         service.update_task(task.id, not_a_field="x")
 
 
+def test_create_task_truncates_title_to_128(service: TaskService) -> None:
+    board = service.create_board("Work")
+    long_title = "x" * 200
+    task = service.create_task(board.columns[0].id, long_title)
+    assert len(task.title) == 128
+    assert task.title == "x" * 128
+
+
+def test_update_task_truncates_title_to_128(service: TaskService) -> None:
+    board = service.create_board("Work")
+    task = service.create_task(board.columns[0].id, "Short")
+    updated = service.update_task(task.id, title="y" * 300)
+    assert len(updated.title) == 128
+    assert updated.title == "y" * 128
+
+
 def test_move_task_between_columns(service: TaskService) -> None:
     board = service.create_board("Work")
     todo = board.columns[0]

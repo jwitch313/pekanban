@@ -34,6 +34,10 @@ class Priority(enum.Enum):
     URGENT = "urgent"
 
 
+#: Maximum length of a task title, enforced at the service layer.
+MAX_TITLE_LENGTH = 128
+
+
 class Task(Base, TimestampMixin):
     """A single Kanban card within a column."""
 
@@ -45,7 +49,7 @@ class Task(Base, TimestampMixin):
         nullable=False,
         index=True,
     )
-    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    title: Mapped[str] = mapped_column(String(MAX_TITLE_LENGTH), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     priority: Mapped[Priority] = mapped_column(
         Enum(Priority, values_callable=lambda e: [m.value for m in e]),

@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMenu,
     QPushButton,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -120,6 +121,7 @@ class CardWidget(QFrame):
     subtask_deleted = Signal(int)  # subtask_id
     priority_changed = Signal(int, object)  # task_id, Priority
     due_date_changed = Signal(int, object)  # task_id, date | None
+    description_changed = Signal(int, object)  # task_id, str | None
 
     def __init__(
         self,
@@ -130,17 +132,20 @@ class CardWidget(QFrame):
         labels: list[LabelSpec] | None = None,
         board_labels: list[LabelSpec] | None = None,
         subtasks: list[tuple[int, str, bool]] | None = None,
+        description: str | None = None,
     ) -> None:
         super().__init__()
         self._task_id = task_id
         self._priority = priority
         self._due_date = due_date
+        self._description = description
         self._board_labels = list(board_labels or [])
         self._drag_start: QPoint | None = None
         self._overdue = False
         self._label_chips: list[LabelChip] = []
         self._subtask_rows: list[QCheckBox] = []
         self._due_popup: QWidget | None = None
+        self._notes_popup: QWidget | None = None
         self.setObjectName("card")
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setAccessibleName(f"Task: {title}")
@@ -150,9 +155,25 @@ class CardWidget(QFrame):
         layout.setSpacing(6)
 
         title_label = QLabel(title)
+        title_label.setObjectName("taskTitle")
         title_label.setWordWrap(True)
         title_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        title_font = title_label.font()
+        title_font.setBold(True)
+        title_font.setPointSize(max(title_font.pointSize(), 11))
+        title_label.setFont(title_font)
         layout.addWidget(title_label)
+
+        if description is not None and description.strip():
+            description_label = QLabel(description)
+            description_label.setObjectName("taskDescription")
+            description_label.setWordWrap(True)
+            description_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            description_font = description_label.font()
+            description_font.setBold(False)
+            description_font.setPointSize(9)
+            description_label.setFont(description_font)
+            layout.addWidget(description_label)
 
         meta_row = QHBoxLayout()
         meta_row.setSpacing(6)
@@ -178,6 +199,15 @@ class CardWidget(QFrame):
         self._due_button.setToolTip("Set due date")
         self._due_button.clicked.connect(self._show_due_date_picker)
         meta_row.addWidget(self._due_button)
+
+        self._notes_button = QPushButton()
+        self._notes_button.setObjectName("notesButton")
+        self._notes_button.setIcon(icons.icon("pencil"))
+        self._notes_button.setFixedWidth(24)
+        self._notes_button.setAccessibleName("Edit description")
+        self._notes_button.setToolTip("Edit description")
+        self._notes_button.clicked.connect(self._show_notes_popup)
+        meta_row.addWidget(self._notes_button)
 
         delete_button = QPushButton()
         delete_button.setIcon(icons.icon("trash"))
@@ -384,6 +414,67 @@ class CardWidget(QFrame):
         """Hide the due-date popup if it is open."""
         if self._due_popup is not None:
             self._due_popup.hide()
+
+    # -- Description ------------------------------------------------------
+    def _show_notes_popup(self) -> None:
+        """Pop up a small description editor anchored to the card.
+
+        Mirrors the due-date picker: a top-level window retained on ``self``
+        so it is not garbage-collected before the user can interact with it.
+        It is deliberately *not* parented to the card, whose stylesheet makes
+        child widgets transparent. Clicking the button again toggles it closed.
+        """
+        if self._notes_popup is not None:
+            if self._notes_popup.isVisible():
+                self._notes_popup.hide()
+                return
+            self._notes_popup.deleteLater()
+            self._notes_popup = None
+
+        popup = QWidget()
+        popup.setWindowFlags(Qt.WindowType.Popup)
+        self.destroyed.connect(popup.deleteLater)
+        layout = QVBoxLayout(popup)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(6)
+
+        self._notes_edit = QTextEdit()
+        self._notes_edit.setPlaceholderText("Add a description…")
+        self._notes_edit.setFixedHeight(120)
+        if self._description:
+            self._notes_edit.setPlainText(self._description)
+        layout.addWidget(self._notes_edit)
+
+        button_row = QHBoxLayout()
+        set_button = QPushButton("Set")
+        set_button.setIcon(icons.icon("pencil"))
+        set_button.clicked.connect(self._on_set_description)
+        clear_button = QPushButton("Clear")
+        clear_button.setIcon(icons.icon("clear"))
+        clear_button.clicked.connect(self._on_clear_description)
+        button_row.addWidget(set_button)
+        button_row.addWidget(clear_button)
+        layout.addLayout(button_row)
+
+        self._notes_popup = popup
+        popup.show()
+        popup.move(self.mapToGlobal(self.rect().bottomLeft()))
+
+    def _on_set_description(self) -> None:
+        """Emit the edited description and close the popup."""
+        text = self._notes_edit.toPlainText().strip()
+        self.description_changed.emit(self._task_id, text if text else None)
+        self._close_notes_popup()
+
+    def _on_clear_description(self) -> None:
+        """Request clearing the description and close the popup."""
+        self.description_changed.emit(self._task_id, None)
+        self._close_notes_popup()
+
+    def _close_notes_popup(self) -> None:
+        """Hide the notes popup if it is open."""
+        if self._notes_popup is not None:
+            self._notes_popup.hide()
 
     # -- Labels -----------------------------------------------------------
     def _build_label_menu(self) -> QMenu:

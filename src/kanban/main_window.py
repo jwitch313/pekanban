@@ -91,6 +91,7 @@ class MainWindow(QMainWindow):
         self._board_view.subtask_deleted.connect(self._on_subtask_deleted)
         self._board_view.priority_changed.connect(self._on_priority_changed)
         self._board_view.due_date_changed.connect(self._on_due_date_changed)
+        self._board_view.description_changed.connect(self._on_description_changed)
         self._search_bar.filters_changed.connect(self._apply_filters)
         self._search_bar.theme_selected.connect(self._on_theme_selected)
         self._search_bar.set_theme_mode(self._settings.theme_mode())
@@ -288,6 +289,11 @@ class MainWindow(QMainWindow):
     def _on_due_date_changed(self, task_id: int, due_date: object) -> None:
         """Set or clear a task's due date and refresh."""
         self._service.update_task(task_id, due_date=due_date)
+        self._load_current_board()
+
+    def _on_description_changed(self, task_id: int, description: object) -> None:
+        """Set or clear a task's description and refresh."""
+        self._service.update_task(task_id, description=description)
         self._load_current_board()
 
     def _reset_filters(self) -> None:

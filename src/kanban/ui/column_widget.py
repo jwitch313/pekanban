@@ -26,8 +26,10 @@ from kanban.ui import icons
 from kanban.ui.card_widget import KANBAN_TASK_MIME, CardWidget, LabelSpec
 
 #: A task as rendered in a column: id, title, priority, due date, labels,
-#: and subtasks (each subtask is id, title, completed).
-TaskSpec = tuple[int, str, Priority, date | None, list[LabelSpec], list[tuple[int, str, bool]]]
+#: subtasks (each subtask is id, title, completed), and description.
+TaskSpec = tuple[
+    int, str, Priority, date | None, list[LabelSpec], list[tuple[int, str, bool]], str | None
+]
 
 
 class _DoubleClickableLabel(QLabel):
@@ -61,6 +63,7 @@ class ColumnWidget(QFrame):
     subtask_deleted = Signal(int)  # subtask_id
     priority_changed = Signal(int, object)  # task_id, Priority
     due_date_changed = Signal(int, object)  # task_id, date | None
+    description_changed = Signal(int, object)  # task_id, str | None
 
     def __init__(
         self,
@@ -129,7 +132,7 @@ class ColumnWidget(QFrame):
 
         self._card_layout = QVBoxLayout()
         self._card_layout.setSpacing(6)
-        for task_id, task_title, priority, due_date, labels, subtasks in tasks:
+        for task_id, task_title, priority, due_date, labels, subtasks, description in tasks:
             card = CardWidget(
                 task_id,
                 task_title,
@@ -138,6 +141,7 @@ class ColumnWidget(QFrame):
                 labels=labels,
                 board_labels=self._board_labels,
                 subtasks=subtasks,
+                description=description,
             )
             card.delete_requested.connect(self.task_deleted)
             card.label_assign_requested.connect(self.label_assign_requested)
@@ -147,6 +151,7 @@ class ColumnWidget(QFrame):
             card.subtask_deleted.connect(self.subtask_deleted)
             card.priority_changed.connect(self.priority_changed)
             card.due_date_changed.connect(self.due_date_changed)
+            card.description_changed.connect(self.description_changed)
             self._card_layout.addWidget(card)
         layout.addLayout(self._card_layout)
 
@@ -156,6 +161,7 @@ class ColumnWidget(QFrame):
         add_row = QHBoxLayout()
         self._add_edit = QLineEdit()
         self._add_edit.setPlaceholderText("Add a task…")
+        self._add_edit.setMaxLength(128)
         self._add_edit.returnPressed.connect(self._submit_new_task)
         add_row.addWidget(self._add_edit)
         add_button = QPushButton()

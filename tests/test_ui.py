@@ -267,6 +267,134 @@ def test_set_due_date_persists(window: MainWindow) -> None:
     assert board.columns[0].tasks[0].due_date == date(2025, 6, 15)
 
 
+def test_card_description_label_shown_when_set(qapp) -> None:
+    """A card with a description renders a description label; without one it does not."""
+    from PySide6.QtWidgets import QLabel
+
+    with_desc = CardWidget(1, "Task", Priority.LOW, None, description="Some notes")
+    assert with_desc.findChild(QLabel, "taskDescription") is not None
+
+    without_desc = CardWidget(2, "Task", Priority.LOW, None)
+    assert without_desc.findChild(QLabel, "taskDescription") is None
+
+    empty_desc = CardWidget(3, "Task", Priority.LOW, None, description="")
+    assert empty_desc.findChild(QLabel, "taskDescription") is None
+
+
+def test_card_description_below_title(qapp) -> None:
+    """The description label must sit directly under the title label."""
+    from PySide6.QtWidgets import QLabel, QLayout
+
+    card = CardWidget(1, "Task", Priority.LOW, None, description="Notes")
+    title = card.findChild(QLabel, "taskTitle")
+    desc = card.findChild(QLabel, "taskDescription")
+    assert title is not None
+    assert desc is not None
+    main = card.layout()
+    assert main is not None
+
+    def index_of(layout: QLayout, widget: QLabel) -> int:
+        for i in range(layout.count()):
+            item = layout.itemAt(i)
+            if item is not None and item.widget() is widget:
+                return i
+        return -1
+
+    assert index_of(main, desc) == index_of(main, title) + 1
+
+
+def test_card_title_font_larger_than_description(qapp) -> None:
+    """The title must be bold and larger than the description text."""
+    from PySide6.QtWidgets import QLabel
+
+    card = CardWidget(1, "Task", Priority.LOW, None, description="Notes")
+    title = card.findChild(QLabel, "taskTitle")
+    desc = card.findChild(QLabel, "taskDescription")
+    assert title is not None
+    assert desc is not None
+    assert title.font().bold()
+    assert title.font().pointSize() > desc.font().pointSize()
+
+
+def test_notes_button_exists_on_card(qapp) -> None:
+    """The card must expose a notes button with a relevant icon."""
+    from PySide6.QtWidgets import QPushButton
+
+    card = CardWidget(1, "Task", Priority.LOW, None)
+    button = card.findChild(QPushButton, "notesButton")
+    assert button is not None
+    assert not button.icon().isNull()
+
+
+def test_notes_popup_is_retained(qapp) -> None:
+    """The notes popup must be retained so it stays visible after the click."""
+    import gc
+
+    from PySide6.QtWidgets import QTextEdit, QWidget
+
+    card = CardWidget(1, "Task", Priority.LOW, None, description="Existing")
+    card._show_notes_popup()
+    gc.collect()
+    assert isinstance(card._notes_popup, QWidget)
+    assert card._notes_popup.isVisible()
+    assert isinstance(card._notes_edit, QTextEdit)
+    assert card._notes_edit.toPlainText() == "Existing"
+
+
+def test_card_description_set_emits(qapp) -> None:
+    """Confirming the notes popup emits description_changed with the text."""
+    from PySide6.QtWidgets import QTextEdit
+
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    emitted: list[tuple[int, object]] = []
+    card.description_changed.connect(lambda tid, d: emitted.append((tid, d)))
+    card._notes_edit = QTextEdit()
+    card._notes_edit.setPlainText("My notes")
+    card._on_set_description()
+    assert emitted == [(5, "My notes")]
+
+
+def test_card_description_clear_emits_none(qapp) -> None:
+    """Clearing the description emits description_changed with None."""
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    emitted: list[tuple[int, object]] = []
+    card.description_changed.connect(lambda tid, d: emitted.append((tid, d)))
+    card._on_clear_description()
+    assert emitted == [(5, None)]
+
+
+def test_column_add_task_field_maxlength(qapp) -> None:
+    """The column's add-task field must cap the title at 128 characters."""
+    column = ColumnWidget(1, "To Do", [])
+    assert column._add_edit.maxLength() == 128
+
+
+def test_board_view_forwards_description_changed(qapp) -> None:
+    """The board view must forward the card's description_changed signal."""
+    view = BoardView()
+    captured: list[tuple[int, object]] = []
+    view.description_changed.connect(lambda *a: captured.append(a))
+    column = ColumnWidget(9, "To Do", [])
+    view.add_column_widget(column)
+    column.description_changed.emit(1, "notes")
+    assert captured == [(1, "notes")]
+
+
+def test_set_description_persists(window: MainWindow) -> None:
+    """Setting a task's description updates and persists it."""
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Desc task")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+    window._on_description_changed(task.id, "Some notes")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    assert board.columns[0].tasks[0].description == "Some notes"
+
+
 def test_all_buttons_have_icons(window: MainWindow) -> None:
     """Every button in the UI must carry a relevant icon."""
     from PySide6.QtWidgets import QPushButton
@@ -320,7 +448,10 @@ def test_column_accepts_drop_and_emits_task_moved(qapp) -> None:
     column = ColumnWidget(
         5,
         "To Do",
-        [(10, "A", Priority.LOW, None, [], []), (11, "B", Priority.HIGH, None, [], [])],
+        [
+            (10, "A", Priority.LOW, None, [], [], None),
+            (11, "B", Priority.HIGH, None, [], [], None),
+        ],
     )
     captured: list[tuple[int, int, int]] = []
     column.task_moved.connect(lambda *a: captured.append(a))
@@ -342,7 +473,10 @@ def test_column_drop_index_boundaries(qapp) -> None:
     column = ColumnWidget(
         5,
         "To Do",
-        [(10, "A", Priority.LOW, None, [], []), (11, "B", Priority.HIGH, None, [], [])],
+        [
+            (10, "A", Priority.LOW, None, [], [], None),
+            (11, "B", Priority.HIGH, None, [], [], None),
+        ],
     )
     # Dropping above the first card yields index 0.
     assert column._drop_index_at(QPoint(0, 0)) == 0
@@ -648,7 +782,7 @@ def test_column_forwards_label_signals(qapp) -> None:
     column = ColumnWidget(
         5,
         "To Do",
-        [(10, "A", Priority.LOW, None, [], [])],
+        [(10, "A", Priority.LOW, None, [], [], None)],
         board_labels=[(1, "Bug", "#d9534f")],
     )
     assigned: list[tuple[int, int]] = []

@@ -25,6 +25,7 @@ class BoardView(QScrollArea):
     subtask_deleted = Signal(int)  # subtask_id
     priority_changed = Signal(int, object)  # task_id, Priority
     due_date_changed = Signal(int, object)  # task_id, date | None
+    description_changed = Signal(int, object)  # task_id, str | None
 
     def __init__(self) -> None:
         super().__init__()
@@ -66,6 +67,7 @@ class BoardView(QScrollArea):
         column.subtask_deleted.connect(self.subtask_deleted)
         column.priority_changed.connect(self.priority_changed)
         column.due_date_changed.connect(self.due_date_changed)
+        column.description_changed.connect(self.description_changed)
         self._column_layout.insertWidget(self._column_layout.count() - 1, column)
 
     def load_board(self, board: Board, visible_task_ids: set[int] | None = None) -> None:
@@ -83,7 +85,17 @@ class BoardView(QScrollArea):
                     continue
                 labels = [(label.id, label.name, label.color) for label in task.labels]
                 subtasks = [(sub.id, sub.title, sub.completed) for sub in task.subtasks]
-                tasks.append((task.id, task.title, task.priority, task.due_date, labels, subtasks))
+                tasks.append(
+                    (
+                        task.id,
+                        task.title,
+                        task.priority,
+                        task.due_date,
+                        labels,
+                        subtasks,
+                        task.description,
+                    )
+                )
             self.add_column_widget(
                 ColumnWidget(column.id, column.title, tasks, index, board_labels=board_labels)
             )
