@@ -205,6 +205,44 @@ def test_due_date_picker_popup_is_opaque_in_light_theme(qapp) -> None:
         qapp.setStyleSheet(previous)
 
 
+def test_due_date_picker_defaults_to_today(qapp) -> None:
+    """The due-date picker must default to the current date, not 2000-01-01."""
+    from PySide6.QtCore import QDate
+
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    card._show_due_date_picker()
+    assert card._due_picker.date() == QDate.currentDate()
+
+
+def test_due_date_label_below_priority(qapp) -> None:
+    """The due-date label must sit on its own row below the priority badge."""
+    from PySide6.QtWidgets import QLabel, QLayout
+
+    card = CardWidget(5, "Task", Priority.LOW, date.today())
+    due_label = card.findChild(QLabel, "dueDate")
+    badge = card.findChild(QLabel, "priorityBadge")
+    assert due_label is not None
+    assert badge is not None
+    main = card.layout()
+    assert main is not None
+
+    def containing_layout(layout: QLayout, widget: QLabel) -> QLayout | None:
+        for index in range(layout.count()):
+            item = layout.itemAt(index)
+            if item is None:
+                continue
+            if item.widget() is widget:
+                return layout
+            sub = item.layout()
+            if sub is not None:
+                found = containing_layout(sub, widget)
+                if found is not None:
+                    return found
+        return None
+
+    assert containing_layout(main, due_label) is not containing_layout(main, badge)
+
+
 def test_card_due_clear_emits_none(qapp) -> None:
     """Clearing the due date emits due_date_changed with None."""
     card = CardWidget(5, "Task", Priority.LOW, None)

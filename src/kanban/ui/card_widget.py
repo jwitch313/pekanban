@@ -161,14 +161,6 @@ class CardWidget(QFrame):
         badge.setStyleSheet(f"color: {PRIORITY_COLORS[priority]}; font-weight: bold;")
         meta_row.addWidget(badge)
 
-        if due_date is not None:
-            due_label = QLabel(f"Due {due_date.isoformat()}")
-            due_label.setObjectName("dueDate")
-            if due_date < date.today():
-                self._overdue = True
-                due_label.setStyleSheet(f"color: {OVERDUE_COLOR}; font-weight: bold;")
-            meta_row.addWidget(due_label)
-
         meta_row.addStretch(1)
 
         self._priority_button = QPushButton()
@@ -196,6 +188,14 @@ class CardWidget(QFrame):
         meta_row.addWidget(delete_button)
 
         layout.addLayout(meta_row)
+
+        if due_date is not None:
+            due_label = QLabel(f"Due {due_date.isoformat()}")
+            due_label.setObjectName("dueDate")
+            if due_date < date.today():
+                self._overdue = True
+                due_label.setStyleSheet(f"color: {OVERDUE_COLOR}; font-weight: bold;")
+            layout.addWidget(due_label)
 
         self._label_row = QHBoxLayout()
         self._label_row.setSpacing(4)
@@ -351,6 +351,8 @@ class CardWidget(QFrame):
             self._due_picker.setDate(
                 QDate(self._due_date.year, self._due_date.month, self._due_date.day)
             )
+        else:
+            self._due_picker.setDate(QDate.currentDate())
         layout.addWidget(self._due_picker)
 
         button_row = QHBoxLayout()
