@@ -101,10 +101,13 @@ class MainWindow(QMainWindow):
         self._ensure_default_board()
 
     def _ensure_default_board(self) -> None:
-        """Create a starter board if the user has none yet."""
+        """Select an existing board, or create a starter board if none exist."""
         if self._current_board_id is None:
-            board = self._service.create_board("My Board")
-            self._current_board_id = board.id
+            boards = self._service.list_boards()
+            if boards:
+                self._current_board_id = boards[0].id
+            else:
+                self._current_board_id = self._service.create_board("My Board").id
         self._refresh_sidebar()
         self._load_current_board()
 

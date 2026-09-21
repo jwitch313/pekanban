@@ -23,6 +23,23 @@ def test_default_board_created(window: MainWindow) -> None:
     assert len(window._service.list_boards()) == 1
 
 
+def test_no_new_board_created_on_relaunch(qapp, tmp_path) -> None:
+    """A second launch over an existing DB must reuse the board, not add one."""
+    from kanban.services.database import create_database
+
+    db = create_database(tmp_path / "relaunch.db")
+    db.init_db()
+    first = MainWindow(database=db)
+    assert len(first._service.list_boards()) == 1
+    first.close()
+
+    second = MainWindow(database=db)
+    assert len(second._service.list_boards()) == 1
+    assert second._current_board_id is not None
+    second.close()
+    db.dispose()
+
+
 def test_add_board(window: MainWindow) -> None:
     window._on_board_added("Second Board")
     boards = window._service.list_boards()
