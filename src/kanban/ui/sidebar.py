@@ -31,6 +31,7 @@ class Sidebar(QFrame):
     board_added = Signal(str)  # name
     board_renamed = Signal(int, str)  # board_id, new_name
     board_deleted = Signal(int)  # board_id
+    column_added = Signal(str)  # title
     label_added = Signal(str, str)  # name, color
     label_deleted = Signal(int)  # label_id
 
@@ -87,6 +88,24 @@ class Sidebar(QFrame):
         add_row.addWidget(add_button)
         layout.addLayout(add_row)
 
+        columns_header = QLabel("Columns")
+        columns_header.setObjectName("sidebarHeader")
+        layout.addWidget(columns_header)
+
+        column_row = QHBoxLayout()
+        self._column_edit = QLineEdit()
+        self._column_edit.setPlaceholderText("New column…")
+        self._column_edit.returnPressed.connect(self._submit_new_column)
+        column_row.addWidget(self._column_edit)
+        column_button = QPushButton()
+        column_button.setIcon(icons.icon("plus"))
+        column_button.setFixedWidth(28)
+        column_button.setAccessibleName("Add column")
+        column_button.setToolTip("Add a new column")
+        column_button.clicked.connect(self._submit_new_column)
+        column_row.addWidget(column_button)
+        layout.addLayout(column_row)
+
         self._label_panel = LabelPanel()
         self._label_panel.label_added.connect(self.label_added)
         self._label_panel.label_deleted.connect(self.label_deleted)
@@ -134,6 +153,14 @@ class Sidebar(QFrame):
         self.board_added.emit(name)
         self._name_edit.clear()
 
+    def _submit_new_column(self) -> None:
+        """Emit a new-column request if the field is non-empty."""
+        title = self._column_edit.text().strip()
+        if not title:
+            return
+        self.column_added.emit(title)
+        self._column_edit.clear()
+
     def load_labels(self, labels: list[tuple[int, str, str | None]]) -> None:
         """Populate the embedded label panel with the board's labels."""
         self._label_panel.load_labels(labels)
@@ -146,6 +173,9 @@ class Sidebar(QFrame):
         for board in boards:
             item = QListWidgetItem(board.name)
             item.setData(Qt.ItemDataRole.UserRole, board.id)
+            # Qt 6.11+ no longer marks list items editable by default, and
+            # editItem() refuses to open an editor without this flag.
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsEditable)
             self._list.addItem(item)
         if selected_id is not None:
             for i in range(self._list.count()):

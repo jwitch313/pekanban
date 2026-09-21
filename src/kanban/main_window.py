@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
         self._sidebar.board_added.connect(self._on_board_added)
         self._sidebar.board_renamed.connect(self._on_board_renamed)
         self._sidebar.board_deleted.connect(self._on_board_deleted)
-        self._board_view.column_added.connect(self._on_column_added)
+        self._sidebar.column_added.connect(self._on_column_added)
         self._board_view.column_renamed.connect(self._on_column_renamed)
         self._board_view.column_moved.connect(self._on_column_moved)
         self._board_view.column_deleted.connect(self._on_column_deleted)
@@ -333,8 +333,8 @@ class MainWindow(QMainWindow):
         self._shortcuts = [new_column, new_task, cancel, undo, redo]
 
     def _shortcut_new_column(self) -> None:
-        """Focus the inline add-column field."""
-        self._board_view.focus_add_column()
+        """Focus the sidebar's add-column field."""
+        self._sidebar._column_edit.setFocus()
 
     def _shortcut_new_task(self) -> None:
         """Focus the first column's inline add-task field."""

@@ -3,25 +3,15 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import (
-    QFrame,
-    QHBoxLayout,
-    QLineEdit,
-    QPushButton,
-    QScrollArea,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QWidget
 
 from kanban.models import Board
-from kanban.ui import icons
 from kanban.ui.column_widget import ColumnWidget
 
 
 class BoardView(QScrollArea):
     """Displays the columns and cards of the currently selected board."""
 
-    column_added = Signal(str)  # title
     column_renamed = Signal(int, str)  # column_id, new_title
     column_moved = Signal(int, int)  # column_id, new_index
     column_deleted = Signal(int)  # column_id
@@ -49,39 +39,8 @@ class BoardView(QScrollArea):
         self._column_layout.addStretch(1)
         self.setWidget(container)
 
-        self._add_column_row = self._build_add_column_row()
-        self._column_layout.insertWidget(0, self._add_column_row)
-
-    def _build_add_column_row(self) -> QWidget:
-        """Build the inline 'add column' control shown before the columns."""
-        row = QWidget()
-        layout = QVBoxLayout(row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        edit = QLineEdit()
-        edit.setPlaceholderText("Add a column…")
-        edit.returnPressed.connect(self._submit_new_column)
-        layout.addWidget(edit)
-        button = QPushButton("Add column")
-        button.setIcon(icons.icon("plus"))
-        button.setAccessibleName("Add column")
-        button.setToolTip("Add a new column")
-        button.clicked.connect(self._submit_new_column)
-        layout.addWidget(button)
-        # Keep the control pinned to the top of the board (not centered).
-        layout.addStretch(1)
-        self._column_edit = edit
-        return row
-
-    def _submit_new_column(self) -> None:
-        """Emit a new-column request if the field is non-empty."""
-        title = self._column_edit.text().strip()
-        if not title:
-            return
-        self.column_added.emit(title)
-        self._column_edit.clear()
-
     def clear_columns(self) -> None:
-        """Remove all column widgets from the view, keeping the add-column row."""
+        """Remove all column widgets from the view."""
         for i in range(self._column_layout.count() - 1, -1, -1):
             item = self._column_layout.itemAt(i)
             if item is None:
@@ -128,10 +87,6 @@ class BoardView(QScrollArea):
             self.add_column_widget(
                 ColumnWidget(column.id, column.title, tasks, index, board_labels=board_labels)
             )
-
-    def focus_add_column(self) -> None:
-        """Give keyboard focus to the inline add-column field."""
-        self._column_edit.setFocus()
 
     def focus_first_task_input(self) -> bool:
         """Focus the first column's add-task field. Returns True if one exists."""

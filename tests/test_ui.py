@@ -269,16 +269,13 @@ def test_column_heading_stays_at_top(qapp) -> None:
     assert spacers, "expected a stretch between the cards and the add-task row"
 
 
-def test_board_add_column_row_top_aligned(qapp) -> None:
-    """The inline add-column control must be top-aligned, not centered."""
-    from PySide6.QtWidgets import QSpacerItem
+def test_board_view_has_no_add_column_button(qapp) -> None:
+    """The add-column control lives in the sidebar, not the board view."""
+    from PySide6.QtWidgets import QPushButton
 
     view = BoardView()
-    layout = view._add_column_row.layout()
-    assert layout is not None
-    # A trailing stretch keeps the control pinned to the top of the board.
-    last = layout.itemAt(layout.count() - 1)
-    assert isinstance(last, QSpacerItem)
+    buttons = view.findChildren(QPushButton)
+    assert not any(b.accessibleName() == "Add column" for b in buttons)
 
 
 def test_column_accepts_drop_and_emits_task_moved(qapp) -> None:
@@ -476,6 +473,43 @@ def test_sidebar_rename_blank_is_ignored(qapp) -> None:
     sidebar._start_rename()
     item.setText("   ")
     assert captured == []
+
+
+def test_sidebar_rename_button_opens_editor(qapp) -> None:
+    """Clicking the pencil button must open the inline rename editor."""
+    from PySide6.QtWidgets import QLineEdit, QPushButton
+
+    from kanban.models import Board
+    from kanban.ui.sidebar import Sidebar
+
+    sidebar = Sidebar()
+    sidebar.load_boards([Board(id=1, name="A")])
+    sidebar._list.setCurrentRow(0)
+    button = next(
+        b for b in sidebar.findChildren(QPushButton) if b.accessibleName() == "Rename board"
+    )
+    button.click()
+    assert sidebar._list.findChild(QLineEdit) is not None
+
+
+def test_sidebar_columns_section_adds_column(window: MainWindow) -> None:
+    """The sidebar Columns section adds a column to the current board."""
+    from PySide6.QtWidgets import QPushButton
+
+    sidebar = window._sidebar
+    board_id = window._current_board_id
+    assert board_id is not None
+
+    sidebar._column_edit.setText("In Progress")
+    button = next(
+        b for b in sidebar.findChildren(QPushButton) if b.accessibleName() == "Add column"
+    )
+    button.click()
+
+    board = window._service.get_board_full(board_id)
+    assert board is not None
+    assert [c.title for c in board.columns] == ["To Do", "In Progress"]
+    assert sidebar._column_edit.text() == ""
 
 
 def test_sidebar_delete_emits_signal(qapp) -> None:

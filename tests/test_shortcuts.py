@@ -36,7 +36,7 @@ def test_shortcut_new_column_focuses(window: MainWindow, qapp: QApplication) -> 
     qapp.processEvents()
     window._shortcut_new_column()
     qapp.processEvents()
-    assert window._board_view._column_edit.hasFocus()
+    assert window._sidebar._column_edit.hasFocus()
 
 
 def test_shortcut_new_task_focuses(window: MainWindow, qapp: QApplication) -> None:
@@ -47,12 +47,10 @@ def test_shortcut_new_task_focuses(window: MainWindow, qapp: QApplication) -> No
     assert _first_column(window)._add_edit.hasFocus()
 
 
-def test_shortcut_cancel_clears_focused_edit(
-    window: MainWindow, qapp: QApplication
-) -> None:
+def test_shortcut_cancel_clears_focused_edit(window: MainWindow, qapp: QApplication) -> None:
     window.show()
     qapp.processEvents()
-    edit = window._board_view._column_edit
+    edit = window._sidebar._column_edit
     edit.setFocus()
     edit.setText("draft")
     qapp.processEvents()
