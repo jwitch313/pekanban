@@ -229,3 +229,15 @@ def resolve_theme_mode(mode: str) -> ThemeMode:
 def apply_theme(app: QtWidgets.QApplication, mode: ThemeMode) -> None:
     """Apply the given theme's stylesheet to the application."""
     app.setStyleSheet(DARK_QSS if mode is ThemeMode.DARK else LIGHT_QSS)
+
+
+#: Native title-bar color per theme, matching each theme's window background.
+TITLE_BAR_COLORS: dict[ThemeMode, str] = {
+    ThemeMode.LIGHT: "#f5f6f8",
+    ThemeMode.DARK: "#1e1f22",
+}
+
+
+def title_bar_color(mode: ThemeMode) -> str:
+    """Return the native title-bar color (``#RRGGBB``) for a theme mode."""
+    return TITLE_BAR_COLORS[mode]

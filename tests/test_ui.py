@@ -1499,3 +1499,54 @@ def test_menu_item_backgrounds_match_theme() -> None:
     from kanban.ui.theme import DARK_QSS, LIGHT_QSS
 
     assert _menu_item_bg_luma(LIGHT_QSS) > _menu_item_bg_luma(DARK_QSS)
+
+
+# -- Title bar ------------------------------------------------------------
+def test_hex_to_colorref() -> None:
+    from kanban.ui.titlebar import hex_to_colorref
+
+    assert hex_to_colorref("#ff0000") == 0x000000FF
+    assert hex_to_colorref("#00ff00") == 0x00FF00
+    assert hex_to_colorref("#0000ff") == 0x00FF0000
+    assert hex_to_colorref("#f5f6f8") == 0x00F8F6F5
+
+
+def test_hex_to_colorref_rejects_bad_input() -> None:
+    import pytest
+
+    from kanban.ui.titlebar import hex_to_colorref
+
+    with pytest.raises(ValueError):
+        hex_to_colorref("#fff")
+
+
+def test_set_title_bar_color_returns_bool() -> None:
+    """The DWM wrapper must never raise; it reports success as a bool."""
+    from kanban.ui.titlebar import set_title_bar_color
+
+    assert isinstance(set_title_bar_color(0, "#f5f6f8"), bool)
+
+
+def test_title_bar_color_matches_theme() -> None:
+    from kanban.ui.theme import ThemeMode, title_bar_color
+
+    assert title_bar_color(ThemeMode.LIGHT) == "#f5f6f8"
+    assert title_bar_color(ThemeMode.DARK) == "#1e1f22"
+
+
+def test_apply_theme_colors_title_bar(window: MainWindow) -> None:
+    """Switching themes must recolor the native title bar to match."""
+    import kanban.main_window as mw
+
+    calls: list[tuple[int, str]] = []
+    original = mw.set_title_bar_color
+    mw.set_title_bar_color = lambda hwnd, color: calls.append((hwnd, color)) or True
+    try:
+        window._apply_theme("light")
+        window._apply_theme("dark")
+    finally:
+        mw.set_title_bar_color = original
+
+    colors = [color for _hwnd, color in calls]
+    assert "#f5f6f8" in colors
+    assert "#1e1f22" in colors

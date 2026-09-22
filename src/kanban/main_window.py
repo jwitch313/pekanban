@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date
 from typing import cast
 
-from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut
+from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -32,7 +32,8 @@ from kanban.services.undo_redo import (
 from kanban.ui.board_view import BoardView
 from kanban.ui.search_bar import Filters, SearchBar
 from kanban.ui.sidebar import Sidebar
-from kanban.ui.theme import apply_theme, resolve_theme_mode
+from kanban.ui.theme import ThemeMode, apply_theme, resolve_theme_mode, title_bar_color
+from kanban.ui.titlebar import set_title_bar_color
 
 
 class MainWindow(QMainWindow):
@@ -47,6 +48,7 @@ class MainWindow(QMainWindow):
         self._settings = SettingsService(self._database)
         self._current_board_id: int | None = None
         self._filters: Filters = {}
+        self._resolved_theme: ThemeMode | None = None
 
         self.setWindowTitle("KanBan")
         self.resize(1100, 700)
@@ -310,9 +312,26 @@ class MainWindow(QMainWindow):
     # -- Theme ------------------------------------------------------------
     def _apply_theme(self, mode: str) -> None:
         """Resolve a stored theme preference and apply it to the app."""
+        resolved = resolve_theme_mode(mode)
+        self._resolved_theme = resolved
         app = QApplication.instance()
         if app is not None:
-            apply_theme(cast("QApplication", app), resolve_theme_mode(mode))
+            apply_theme(cast("QApplication", app), resolved)
+        self._apply_title_bar_color()
+
+    def _apply_title_bar_color(self) -> None:
+        """Recolor the native Windows title bar to match the active theme.
+
+        A no-op on other platforms or when the DWM API is unavailable.
+        """
+        if self._resolved_theme is None:
+            return
+        set_title_bar_color(int(self.winId()), title_bar_color(self._resolved_theme))
+
+    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802 - Qt naming
+        """Re-apply the title-bar color once the native window exists."""
+        super().showEvent(event)
+        self._apply_title_bar_color()
 
     def _on_theme_selected(self, mode: str) -> None:
         """Persist the chosen theme preference and re-apply it immediately."""
