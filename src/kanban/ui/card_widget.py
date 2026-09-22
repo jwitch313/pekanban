@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 
 from kanban.models import Priority
 from kanban.ui import icons
+from kanban.ui.flow_layout import FlowLayout
 
 #: MIME type used to identify a Kanban task during a drag operation.
 KANBAN_TASK_MIME = "application/x-kanban-task"
@@ -227,8 +228,11 @@ class CardWidget(QFrame):
                 due_label.setStyleSheet(f"color: {OVERDUE_COLOR}; font-weight: bold;")
             layout.addWidget(due_label)
 
-        self._label_row = QHBoxLayout()
-        self._label_row.setSpacing(4)
+        # A flow layout so label chips wrap onto new lines when the card is
+        # narrower than their combined width (instead of clipping/overflowing).
+        self._label_row = FlowLayout()
+        self._label_row.setHorizontalSpacing(4)
+        self._label_row.setVerticalSpacing(4)
         for label_id, name, color in labels or []:
             chip = LabelChip(label_id, name, color)
             chip.remove_requested.connect(
@@ -244,7 +248,6 @@ class CardWidget(QFrame):
         label_button.setToolTip("Assign a label")
         label_button.clicked.connect(self._show_label_menu)
         self._label_row.addWidget(label_button)
-        self._label_row.addStretch(1)
         layout.addLayout(self._label_row)
 
         self._subtask_section = self._build_subtask_section(subtasks or [])

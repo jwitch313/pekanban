@@ -765,6 +765,52 @@ def test_label_chip_style_and_remove_signal(qapp) -> None:
     assert captured == [3]
 
 
+def test_card_label_row_uses_flow_layout(qapp) -> None:
+    """Label chips must wrap to a new line when they exceed the card width.
+
+    A plain horizontal layout clips/overflows; a flow layout reflows chips
+    onto additional lines as the available width shrinks.
+    """
+    from kanban.ui.card_widget import CardWidget
+    from kanban.ui.flow_layout import FlowLayout
+
+    card = CardWidget(
+        1,
+        "Task",
+        Priority.LOW,
+        None,
+        labels=[(1, "Alpha", "#ff0000"), (2, "Beta", "#00ff00")],
+    )
+    assert isinstance(card._label_row, FlowLayout)
+
+
+def test_flow_layout_wraps_when_narrow(qapp) -> None:
+    """A FlowLayout places items on a new line when they no longer fit."""
+    from PySide6.QtCore import QSize
+    from PySide6.QtWidgets import QWidget
+
+    from kanban.ui.flow_layout import FlowLayout
+
+    container = QWidget()
+    layout = FlowLayout()
+    container.setLayout(layout)
+    for i in range(4):
+        item = QWidget()
+        item.setFixedSize(QSize(60, 20))
+        layout.addWidget(item)
+
+    # Wide enough: everything fits on one line.
+    layout.setGeometry(0, 0, 400, 200)
+    first_row_y = layout.itemAt(0).widget().y()
+    last_row_y = layout.itemAt(3).widget().y()
+    assert first_row_y == last_row_y
+
+    # Too narrow: items must wrap onto a second line.
+    layout.setGeometry(0, 0, 100, 200)
+    ys = {layout.itemAt(i).widget().y() for i in range(4)}
+    assert len(ys) > 1, "expected items to wrap onto multiple lines"
+
+
 def test_card_renders_label_chips(qapp) -> None:
     card = CardWidget(
         1,
