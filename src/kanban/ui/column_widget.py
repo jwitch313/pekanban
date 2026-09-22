@@ -72,6 +72,7 @@ class ColumnWidget(QFrame):
         tasks: list[TaskSpec],
         index: int = 0,
         board_labels: list[LabelSpec] | None = None,
+        _measuring: bool = False,
     ) -> None:
         super().__init__()
         self._column_id = column_id
@@ -172,6 +173,16 @@ class ColumnWidget(QFrame):
         add_button.clicked.connect(self._submit_new_task)
         add_row.addWidget(add_button)
         layout.addLayout(add_row)
+
+        # Cap the column width so it never grows past twice the width of an
+        # empty column (header + add-task row). Measured against a reference
+        # empty column built with the same title; ``_measuring`` prevents the
+        # reference from recursing into this same logic.
+        if not _measuring:
+            reference = ColumnWidget(0, title, [], _measuring=True)
+            empty_width = max(reference.sizeHint().width(), 1)
+            self.setMaximumWidth(2 * empty_width)
+            reference.deleteLater()
 
     @property
     def column_id(self) -> int:

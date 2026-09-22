@@ -435,6 +435,28 @@ def test_column_heading_stays_at_top(qapp) -> None:
     assert spacers, "expected a stretch between the cards and the add-task row"
 
 
+def test_column_max_width_is_twice_empty_column(qapp) -> None:
+    """A column must never be wider than twice an empty column's width."""
+    empty = ColumnWidget(1, "To Do", [])
+    empty_width = empty.sizeHint().width()
+    assert empty_width > 0
+
+    full = ColumnWidget(
+        2,
+        "To Do",
+        [(10, "A task", Priority.LOW, None, [], [], None)],
+    )
+    # The cap is a finite value (not the default 16777215) equal to 2x empty.
+    assert full.maximumWidth() == 2 * empty_width
+    assert full.maximumWidth() < 16777215
+
+
+def test_column_max_width_bounded_even_when_empty(qapp) -> None:
+    """Even an empty column carries the finite width cap."""
+    column = ColumnWidget(1, "Empty", [])
+    assert 0 < column.maximumWidth() < 16777215
+
+
 def test_board_view_has_no_add_column_button(qapp) -> None:
     """The add-column control lives in the sidebar, not the board view."""
     from PySide6.QtWidgets import QPushButton
