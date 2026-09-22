@@ -152,6 +152,8 @@ class CardWidget(QFrame):
     due_date_changed = Signal(int, object)  # task_id, date | None
     description_changed = Signal(int, object)  # task_id, str | None
     title_changed = Signal(int, str)  # task_id, new_title
+    archive_requested = Signal(int)  # task_id
+    restore_requested = Signal(int)  # task_id
 
     def __init__(
         self,
@@ -163,12 +165,14 @@ class CardWidget(QFrame):
         board_labels: list[LabelSpec] | None = None,
         subtasks: list[tuple[int, str, bool]] | None = None,
         description: str | None = None,
+        archived: bool = False,
     ) -> None:
         super().__init__()
         self._task_id = task_id
         self._priority = priority
         self._due_date = due_date
         self._description = description
+        self._archived = archived
         self._board_labels = list(board_labels or [])
         self._drag_start: QPoint | None = None
         self._overdue = False
@@ -252,6 +256,25 @@ class CardWidget(QFrame):
         self._notes_button.clicked.connect(self._show_notes_popup)
         meta_row.addWidget(self._notes_button)
 
+        if self._archived:
+            restore_button = QPushButton()
+            restore_button.setObjectName("restoreButton")
+            restore_button.setIcon(icons.icon("restore"))
+            restore_button.setFixedWidth(24)
+            restore_button.setAccessibleName("Restore task")
+            restore_button.setToolTip("Restore task")
+            restore_button.clicked.connect(lambda: self.restore_requested.emit(self._task_id))
+            meta_row.addWidget(restore_button)
+        else:
+            archive_button = QPushButton()
+            archive_button.setObjectName("archiveButton")
+            archive_button.setIcon(icons.icon("archive"))
+            archive_button.setFixedWidth(24)
+            archive_button.setAccessibleName("Archive task")
+            archive_button.setToolTip("Archive task")
+            archive_button.clicked.connect(lambda: self.archive_requested.emit(self._task_id))
+            meta_row.addWidget(archive_button)
+
         delete_button = QPushButton()
         delete_button.setIcon(icons.icon("trash"))
         delete_button.setFixedWidth(24)
@@ -304,6 +327,15 @@ class CardWidget(QFrame):
     def overdue(self) -> bool:
         """Whether the task's due date is in the past."""
         return self._overdue
+
+    @property
+    def archived(self) -> bool:
+        """Whether this card represents an archived task."""
+        return self._archived
+
+    def _can_drag(self) -> bool:
+        """Archived cards are not draggable (no drop target in archive view)."""
+        return not self._archived
 
     @property
     def label_ids(self) -> list[int]:
@@ -645,8 +677,10 @@ class CardWidget(QFrame):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt naming
-        if event.buttons() & Qt.MouseButton.LeftButton and self._should_start_drag(
-            event.position().toPoint()
+        if (
+            self._can_drag()
+            and event.buttons() & Qt.MouseButton.LeftButton
+            and self._should_start_drag(event.position().toPoint())
         ):
             self._start_drag()
         super().mouseMoveEvent(event)

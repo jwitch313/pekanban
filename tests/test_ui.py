@@ -175,6 +175,60 @@ def test_card_priority_actions_exclusive(qapp) -> None:
     assert not card._priority_actions[Priority.LOW].isChecked()
 
 
+def test_card_not_archived_by_default(qapp) -> None:
+    """A card is not archived unless explicitly told so."""
+    assert CardWidget(1, "Task", Priority.LOW, None).archived is False
+    assert CardWidget(2, "Task", Priority.LOW, None, archived=True).archived is True
+
+
+def test_card_shows_archive_button_when_not_archived(qapp) -> None:
+    """A live card offers an archive button and no restore button."""
+    from PySide6.QtWidgets import QPushButton
+
+    card = CardWidget(1, "Task", Priority.LOW, None)
+    assert card.findChild(QPushButton, "archiveButton") is not None
+    assert card.findChild(QPushButton, "restoreButton") is None
+
+
+def test_card_shows_restore_button_when_archived(qapp) -> None:
+    """An archived card offers a restore button in place of the archive one."""
+    from PySide6.QtWidgets import QPushButton
+
+    card = CardWidget(1, "Task", Priority.LOW, None, archived=True)
+    assert card.findChild(QPushButton, "restoreButton") is not None
+    assert card.findChild(QPushButton, "archiveButton") is None
+
+
+def test_archive_button_emits_signal(qapp) -> None:
+    """Clicking the archive button emits archive_requested with the task id."""
+    from PySide6.QtWidgets import QPushButton
+
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    emitted: list[int] = []
+    card.archive_requested.connect(emitted.append)
+    card.findChild(QPushButton, "archiveButton").click()
+    assert emitted == [5]
+
+
+def test_restore_button_emits_signal(qapp) -> None:
+    """Clicking the restore button emits restore_requested with the task id."""
+    from PySide6.QtWidgets import QPushButton
+
+    card = CardWidget(5, "Task", Priority.LOW, None, archived=True)
+    emitted: list[int] = []
+    card.restore_requested.connect(emitted.append)
+    card.findChild(QPushButton, "restoreButton").click()
+    assert emitted == [5]
+
+
+def test_archived_card_cannot_start_drag(qapp) -> None:
+    """Archived cards are not draggable (there is no drop target in archive view)."""
+    card = CardWidget(5, "Task", Priority.LOW, None, archived=True)
+    assert card._can_drag() is False
+    live = CardWidget(6, "Task", Priority.LOW, None)
+    assert live._can_drag() is True
+
+
 def test_change_task_priority_persists(window: MainWindow) -> None:
     """Changing a task's priority updates and persists it."""
     board = window._service.get_board_full(window._current_board_id)
