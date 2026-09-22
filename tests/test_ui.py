@@ -111,6 +111,20 @@ def test_card_drag_pixmap_elides_long_title(qapp) -> None:
     assert card._elide_drag_title("Short") == "Short"
 
 
+def test_card_has_drop_shadow(qapp) -> None:
+    from PySide6.QtWidgets import QGraphicsDropShadowEffect
+
+    card = CardWidget(1, "Task", Priority.LOW, None)
+    assert isinstance(card.graphicsEffect(), QGraphicsDropShadowEffect)
+
+
+def test_column_has_drop_shadow(qapp) -> None:
+    from PySide6.QtWidgets import QGraphicsDropShadowEffect
+
+    column = ColumnWidget(1, "To Do", [])
+    assert isinstance(column.graphicsEffect(), QGraphicsDropShadowEffect)
+
+
 def test_card_overdue_highlighting(qapp) -> None:
     past = date.today() - timedelta(days=1)
     future = date.today() + timedelta(days=1)

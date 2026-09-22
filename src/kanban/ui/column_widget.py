@@ -23,7 +23,7 @@ from PySide6.QtWidgets import (
 
 from kanban.models import Priority
 from kanban.ui import icons
-from kanban.ui.card_widget import KANBAN_TASK_MIME, CardWidget, LabelSpec
+from kanban.ui.card_widget import KANBAN_TASK_MIME, CardWidget, LabelSpec, make_drop_shadow
 
 #: A task as rendered in a column: id, title, priority, due date, labels,
 #: subtasks (each subtask is id, title, completed), and description.
@@ -81,6 +81,10 @@ class ColumnWidget(QFrame):
         self._board_labels = list(board_labels or [])
         self.setObjectName("column")
         self.setFrameShape(QFrame.Shape.StyledPanel)
+        # Keep a Python reference: Qt does not own the effect, so without this
+        # it would be garbage-collected and the shadow would vanish.
+        self._shadow = make_drop_shadow()
+        self.setGraphicsEffect(self._shadow)
         self.setAcceptDrops(True)
         # Fill the board height so the heading stays at the top even when the
         # column is empty or has few cards (Trello-style layout).

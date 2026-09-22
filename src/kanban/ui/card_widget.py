@@ -29,6 +29,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDateEdit,
     QFrame,
+    QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -73,6 +74,21 @@ class _DoubleClickableLabel(QLabel):
     def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt naming
         self.double_clicked.emit()
         super().mouseDoubleClickEvent(event)
+
+
+def make_drop_shadow() -> QGraphicsDropShadowEffect:
+    """Build a light drop shadow for cards and columns.
+
+    A soft, low-opacity shadow with a small downward offset gives depth without
+    overwhelming the flat, modern look of the board.
+    """
+    effect = QGraphicsDropShadowEffect()
+    effect.setBlurRadius(18)
+    effect.setOffset(0, 2)
+    shadow = QColor(0, 0, 0)
+    shadow.setAlpha(70)
+    effect.setColor(shadow)
+    return effect
 
 
 class LabelChip(QPushButton):
@@ -162,6 +178,10 @@ class CardWidget(QFrame):
         self._notes_popup: QWidget | None = None
         self.setObjectName("card")
         self.setFrameShape(QFrame.Shape.StyledPanel)
+        # Keep a Python reference: Qt does not own the effect, so without this
+        # it would be garbage-collected and the shadow would vanish.
+        self._shadow = make_drop_shadow()
+        self.setGraphicsEffect(self._shadow)
         self.setAccessibleName(f"Task: {title}")
 
         self._layout = QVBoxLayout(self)
