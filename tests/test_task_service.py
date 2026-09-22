@@ -397,3 +397,67 @@ def test_search_scoped_to_board(service: TaskService) -> None:
 
     assert [t.title for t in service.search_tasks(board_a.id)] == ["In A"]
     assert [t.title for t in service.search_tasks(board_b.id)] == ["In B"]
+
+
+# -- Archive -----------------------------------------------------------
+def test_new_task_is_not_archived_by_default(service: TaskService) -> None:
+    board = service.create_board("Work")
+    task = service.create_task(board.columns[0].id, "Fresh")
+    assert task.archived is False
+
+
+def test_archive_task(service: TaskService) -> None:
+    board = service.create_board("Work")
+    task = service.create_task(board.columns[0].id, "Archive me")
+    archived = service.archive_task(task.id)
+    assert archived.archived is True
+
+
+def test_restore_task(service: TaskService) -> None:
+    board = service.create_board("Work")
+    task = service.create_task(board.columns[0].id, "Restore me")
+    service.archive_task(task.id)
+    restored = service.restore_task(task.id)
+    assert restored.archived is False
+
+
+def test_archive_unknown_task_raises(service: TaskService) -> None:
+    with pytest.raises(LookupError):
+        service.archive_task(9999)
+
+
+def test_restore_unknown_task_raises(service: TaskService) -> None:
+    with pytest.raises(LookupError):
+        service.restore_task(9999)
+
+
+def test_list_archived_tasks(service: TaskService) -> None:
+    board = service.create_board("Work")
+    todo = board.columns[0]
+    a = service.create_task(todo.id, "A")
+    b = service.create_task(todo.id, "B")
+    c = service.create_task(todo.id, "C")
+    service.archive_task(a.id)
+    service.archive_task(c.id)
+
+    archived = service.list_archived_tasks(board.id)
+    assert [t.id for t in archived] == [a.id, c.id]
+    assert all(t.archived for t in archived)
+
+
+def test_list_archived_tasks_scoped_to_board(service: TaskService) -> None:
+    board_a = service.create_board("A")
+    board_b = service.create_board("B")
+    ta = service.create_task(board_a.columns[0].id, "In A")
+    tb = service.create_task(board_b.columns[0].id, "In B")
+    service.archive_task(ta.id)
+    service.archive_task(tb.id)
+
+    assert [t.id for t in service.list_archived_tasks(board_a.id)] == [ta.id]
+    assert [t.id for t in service.list_archived_tasks(board_b.id)] == [tb.id]
+
+
+def test_list_archived_tasks_empty(service: TaskService) -> None:
+    board = service.create_board("Work")
+    service.create_task(board.columns[0].id, "Not archived")
+    assert service.list_archived_tasks(board.id) == []

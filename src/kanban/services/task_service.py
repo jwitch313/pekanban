@@ -317,6 +317,42 @@ class TaskService:
                 raise LookupError(f"Task {task_id} does not exist")
             session.delete(task)
 
+    def archive_task(self, task_id: int) -> Task:
+        """Mark a task as archived and return it."""
+        with self._db.session() as session:
+            task = session.get(Task, task_id)
+            if task is None:
+                raise LookupError(f"Task {task_id} does not exist")
+            task.archived = True
+            session.flush()
+            return task
+
+    def restore_task(self, task_id: int) -> Task:
+        """Clear a task's archived flag and return it."""
+        with self._db.session() as session:
+            task = session.get(Task, task_id)
+            if task is None:
+                raise LookupError(f"Task {task_id} does not exist")
+            task.archived = False
+            session.flush()
+            return task
+
+    def list_archived_tasks(self, board_id: int) -> list[Task]:
+        """Return all archived tasks on a board, ordered by column then position.
+
+        Relationships are loaded inside the session so the returned objects
+        remain usable after the session closes.
+        """
+        with self._db.session() as session:
+            board = session.get(Board, board_id)
+            if board is None:
+                return []
+            tasks = [t for c in board.columns for t in c.tasks if t.archived]
+            for task in tasks:
+                list(task.labels)
+                list(task.subtasks)
+            return tasks
+
     # -- Sub-tasks --------------------------------------------------------
     def add_subtask(self, task_id: int, title: str) -> Subtask:
         """Append a sub-task to a task, ordered after existing sub-tasks."""
