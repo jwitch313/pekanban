@@ -63,6 +63,16 @@ DEFAULT_LABEL_COLOR = "#888888"
 LabelSpec = tuple[int, str, str | None]
 
 
+class _DoubleClickableLabel(QLabel):
+    """A label that emits a signal when double-clicked (used for inline rename)."""
+
+    double_clicked = Signal()
+
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt naming
+        self.double_clicked.emit()
+        super().mouseDoubleClickEvent(event)
+
+
 class LabelChip(QPushButton):
     """A small colored chip representing a label assigned to a card.
 
@@ -123,6 +133,7 @@ class CardWidget(QFrame):
     priority_changed = Signal(int, object)  # task_id, Priority
     due_date_changed = Signal(int, object)  # task_id, date | None
     description_changed = Signal(int, object)  # task_id, str | None
+    title_changed = Signal(int, str)  # task_id, new_title
 
     def __init__(
         self,
@@ -151,19 +162,28 @@ class CardWidget(QFrame):
         self.setFrameShape(QFrame.Shape.StyledPanel)
         self.setAccessibleName(f"Task: {title}")
 
-        layout = QVBoxLayout(self)
+        self._layout = QVBoxLayout(self)
+        layout = self._layout
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(6)
 
-        title_label = QLabel(title)
-        title_label.setObjectName("taskTitle")
-        title_label.setWordWrap(True)
-        title_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        title_font = title_label.font()
+        self._title_label = _DoubleClickableLabel(title)
+        self._title_label.setObjectName("taskTitle")
+        self._title_label.setWordWrap(True)
+        self._title_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self._title_label.double_clicked.connect(self._start_title_edit)
+        title_font = self._title_label.font()
         title_font.setBold(True)
         title_font.setPointSize(max(title_font.pointSize(), 11))
-        title_label.setFont(title_font)
-        layout.addWidget(title_label)
+        self._title_label.setFont(title_font)
+        layout.addWidget(self._title_label)
+
+        self._title_edit = QLineEdit()
+        self._title_edit.setAccessibleName("Edit task title")
+        self._title_edit.setMaxLength(128)
+        self._title_edit.returnPressed.connect(self._commit_title_edit)
+        self._title_edit.editingFinished.connect(self._commit_title_edit)
+        self._title_edit.hide()
 
         if description is not None and description.strip():
             description_label = QLabel(description)
@@ -267,6 +287,38 @@ class CardWidget(QFrame):
     def label_ids(self) -> list[int]:
         """The ids of the labels currently shown as chips on this card."""
         return [chip.label_id for chip in self._label_chips]
+
+    # -- Title ------------------------------------------------------------
+    def _start_title_edit(self) -> None:
+        """Swap the title label for an inline edit field."""
+        if not self._title_edit.isHidden():
+            return
+        self._title_edit.setText(self._title_label.text())
+        self._title_label.hide()
+        self._layout.insertWidget(self._title_label_index() + 1, self._title_edit)
+        self._title_edit.show()
+        self._title_edit.setFocus()
+        self._title_edit.selectAll()
+
+    def _commit_title_edit(self) -> None:
+        """Commit an inline title edit, emitting a signal if it changed."""
+        if self._title_edit.isHidden():
+            return
+        new_title = self._title_edit.text().strip()
+        self._layout.removeWidget(self._title_edit)
+        self._title_edit.hide()
+        self._title_label.show()
+        if new_title and new_title != self._title_label.text():
+            self._title_label.setText(new_title)
+            self.title_changed.emit(self._task_id, new_title)
+
+    def _title_label_index(self) -> int:
+        """Return the index of the title label within the card layout."""
+        for i in range(self._layout.count()):
+            item = self._layout.itemAt(i)
+            if item is not None and item.widget() is self._title_label:
+                return i
+        return 0
 
     # -- Sub-tasks --------------------------------------------------------
     def _build_subtask_section(self, subtasks: list[tuple[int, str, bool]]) -> QWidget:

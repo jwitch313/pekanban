@@ -316,6 +316,63 @@ def test_card_title_font_larger_than_description(qapp) -> None:
     assert title.font().pointSize() > desc.font().pointSize()
 
 
+def test_card_title_double_click_swaps_editor(qapp) -> None:
+    """Double-clicking the title swaps the label for an inline editor."""
+    from PySide6.QtWidgets import QLabel
+
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    title = card.findChild(QLabel, "taskTitle")
+    assert title is not None
+    card._start_title_edit()
+    assert card._title_edit is not None
+    assert not card._title_edit.isHidden()
+    assert title.isHidden()
+    assert card._title_edit.text() == "Task"
+
+
+def test_card_title_commit_emits(qapp) -> None:
+    """Committing a non-empty title edit emits title_changed and updates the label."""
+    from PySide6.QtWidgets import QLabel
+
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    emitted: list[tuple[int, str]] = []
+    card.title_changed.connect(lambda tid, t: emitted.append((tid, t)))
+    card._start_title_edit()
+    card._title_edit.setText("New Title")
+    card._commit_title_edit()
+    assert emitted == [(5, "New Title")]
+    assert card.findChild(QLabel, "taskTitle").text() == "New Title"
+
+
+def test_card_title_commit_empty_keeps_original(qapp) -> None:
+    """Committing an empty title edit keeps the original title and emits nothing."""
+    from PySide6.QtWidgets import QLabel
+
+    card = CardWidget(5, "Task", Priority.LOW, None)
+    emitted: list[tuple[int, str]] = []
+    card.title_changed.connect(lambda tid, t: emitted.append((tid, t)))
+    card._start_title_edit()
+    card._title_edit.setText("")
+    card._commit_title_edit()
+    assert emitted == []
+    assert card.findChild(QLabel, "taskTitle").text() == "Task"
+
+
+def test_change_task_title_persists(window: MainWindow) -> None:
+    """Renaming a task's title updates and persists it."""
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Old name")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+    window._on_title_changed(task.id, "New name")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    assert board.columns[0].tasks[0].title == "New name"
+
+
 def test_notes_button_exists_on_card(qapp) -> None:
     """The card must expose a notes button with a relevant icon."""
     from PySide6.QtWidgets import QPushButton

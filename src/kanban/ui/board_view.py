@@ -26,6 +26,7 @@ class BoardView(QScrollArea):
     priority_changed = Signal(int, object)  # task_id, Priority
     due_date_changed = Signal(int, object)  # task_id, date | None
     description_changed = Signal(int, object)  # task_id, str | None
+    title_changed = Signal(int, str)  # task_id, new_title
 
     def __init__(self) -> None:
         super().__init__()
@@ -68,6 +69,7 @@ class BoardView(QScrollArea):
         column.priority_changed.connect(self.priority_changed)
         column.due_date_changed.connect(self.due_date_changed)
         column.description_changed.connect(self.description_changed)
+        column.title_changed.connect(self.title_changed)
         self._column_layout.insertWidget(self._column_layout.count() - 1, column)
 
     def load_board(self, board: Board, visible_task_ids: set[int] | None = None) -> None:

@@ -64,6 +64,7 @@ class ColumnWidget(QFrame):
     priority_changed = Signal(int, object)  # task_id, Priority
     due_date_changed = Signal(int, object)  # task_id, date | None
     description_changed = Signal(int, object)  # task_id, str | None
+    title_changed = Signal(int, str)  # task_id, new_title
 
     def __init__(
         self,
@@ -153,6 +154,7 @@ class ColumnWidget(QFrame):
             card.priority_changed.connect(self.priority_changed)
             card.due_date_changed.connect(self.due_date_changed)
             card.description_changed.connect(self.description_changed)
+            card.title_changed.connect(self.title_changed)
             self._card_layout.addWidget(card)
         layout.addLayout(self._card_layout)
 
