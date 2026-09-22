@@ -1045,6 +1045,27 @@ def test_search_bar_query_width_is_bounded(qapp) -> None:
     assert 2.0 < ratio < 3.5
 
 
+def test_search_bar_theme_button_is_right_justified(qapp) -> None:
+    """The theme button sits at the far right, separated by a stretch."""
+    from PySide6.QtWidgets import QSpacerItem
+
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    layout = bar.layout()
+    assert layout is not None
+    count = layout.count()
+    assert count >= 2
+    # The last item is the theme button.
+    last = layout.itemAt(count - 1)
+    assert last is not None
+    assert last.widget() is bar._theme_button
+    # The item immediately before it is a spacer (the stretch).
+    spacer = layout.itemAt(count - 2)
+    assert spacer is not None
+    assert isinstance(spacer, QSpacerItem)
+
+
 def test_search_bar_build_filters_reflects_controls(qapp) -> None:
     from kanban.ui.search_bar import SearchBar
 

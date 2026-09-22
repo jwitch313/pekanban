@@ -126,6 +126,9 @@ class SearchBar(QFrame):
         self._theme_button.setAccessibleName("Theme")
         self._theme_button.setToolTip("Theme")
         self._theme_button.setMenu(self._build_theme_menu())
+        # Push the theme button to the far right; the search box and filter
+        # controls stay left-justified with the extra space absorbed here.
+        layout.addStretch(1)
         layout.addWidget(self._theme_button)
 
     def _bound_query_width(self) -> None:
