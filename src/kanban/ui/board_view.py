@@ -80,6 +80,8 @@ class BoardView(QScrollArea):
         column.due_date_changed.connect(self.due_date_changed)
         column.description_changed.connect(self.description_changed)
         column.title_changed.connect(self.title_changed)
+        column.archive_requested.connect(self.archive_requested)
+        column.restore_requested.connect(self.restore_requested)
         self._column_layout.insertWidget(self._column_layout.count() - 1, column)
 
     def load_board(self, board: Board, visible_task_ids: set[int] | None = None) -> None:

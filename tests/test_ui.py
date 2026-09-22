@@ -1108,6 +1108,28 @@ def test_board_view_forwards_archive_signals(qapp) -> None:
     assert restored == [7]
 
 
+def test_board_view_forwards_archive_from_column_card(qapp) -> None:
+    """Clicking archive on a card inside a column reaches the board view."""
+    from PySide6.QtWidgets import QPushButton
+
+    from kanban.models import Board, BoardColumn, Task
+
+    board = Board(id=1, name="B")
+    column = BoardColumn(id=1, title="To Do", order_idx=0)
+    a = Task(id=7, title="A", priority=Priority.LOW, order_idx=0)
+    column.tasks.append(a)
+    board.columns.append(column)
+
+    view = BoardView()
+    archived: list[int] = []
+    view.archive_requested.connect(archived.append)
+    view.load_board(board)
+    card = view.widget().findChild(CardWidget)
+    assert card is not None
+    card.findChild(QPushButton, "archiveButton").click()
+    assert archived == [7]
+
+
 def test_clear_columns_removes_archived_view(qapp) -> None:
     """clear_columns must remove the archived-view widget, not just columns."""
     from kanban.models import Board, BoardColumn, Task
