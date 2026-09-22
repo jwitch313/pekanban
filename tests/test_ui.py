@@ -794,7 +794,7 @@ def test_flow_layout_wraps_when_narrow(qapp) -> None:
     container = QWidget()
     layout = FlowLayout()
     container.setLayout(layout)
-    for i in range(4):
+    for _ in range(4):
         item = QWidget()
         item.setFixedSize(QSize(60, 20))
         layout.addWidget(item)
@@ -1028,6 +1028,21 @@ def test_search_bar_defaults(qapp) -> None:
         "due_before": None,
         "due_after": None,
     }
+
+
+def test_search_bar_query_width_is_bounded(qapp) -> None:
+    """The search box must have a bounded width (max ~64 chars, min ~24 chars)."""
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    min_w = bar._query.minimumWidth()
+    max_w = bar._query.maximumWidth()
+    assert 0 < min_w < max_w
+    assert max_w < 16777215  # not the Qt unlimited sentinel
+    # The max/min ratio should track the 64/24 character ratio (allowing for
+    # frame/padding skew).
+    ratio = max_w / min_w
+    assert 2.0 < ratio < 3.5
 
 
 def test_search_bar_build_filters_reflects_controls(qapp) -> None:

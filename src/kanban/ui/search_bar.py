@@ -51,7 +51,8 @@ class SearchBar(QFrame):
         self._query.setPlaceholderText("Search tasks…")
         self._query.setAccessibleName("Search query")
         self._query.textChanged.connect(self._emit_filters)
-        layout.addWidget(self._query, 1)
+        self._bound_query_width()
+        layout.addWidget(self._query)
 
         self._priority = QComboBox()
         self._priority.setAccessibleName("Priority filter")
@@ -126,6 +127,20 @@ class SearchBar(QFrame):
         self._theme_button.setToolTip("Theme")
         self._theme_button.setMenu(self._build_theme_menu())
         layout.addWidget(self._theme_button)
+
+    def _bound_query_width(self) -> None:
+        """Clamp the search box to a readable width (24-64 characters).
+
+        The width is derived from the current font so it tracks the actual
+        character advance. Overflowing text scrolls within the field (the
+        default ``QLineEdit`` behaviour), so no extra work is needed there.
+        """
+        metrics = self._query.fontMetrics()
+        padding = 16  # frame + left/right padding
+        min_px = metrics.horizontalAdvance("0" * 24) + padding
+        max_px = metrics.horizontalAdvance("0" * 64) + padding
+        self._query.setMinimumWidth(min_px)
+        self._query.setMaximumWidth(max_px)
 
     def _build_theme_menu(self) -> QMenu:
         """Build an exclusive System/Light/Dark theme selector menu."""
