@@ -44,6 +44,8 @@ def test_expected_icons_present(qapp: QApplication) -> None:
         "sun",
         "moon",
         "monitor",
+        "archive",
+        "restore",
     ):
         assert expected in names
 

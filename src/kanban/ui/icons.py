@@ -37,6 +37,8 @@ DEFAULT_ICON_COLORS: dict[str, str] = {
     "monitor": "#2f6fed",  # blue — system theme
     "flag": "#e07b39",  # orange — priority
     "calendar": "#2f6fed",  # blue — due date
+    "archive": "#0f9d8f",  # teal — archive
+    "restore": "#2e9e5b",  # green — restore
 }
 
 #: Feather-style icon paths (24x24 viewBox, stroke-based).
@@ -63,6 +65,8 @@ _ICON_PATHS: dict[str, str] = {
         "M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"
         "M16 2v4M8 2v4M3 10h18"
     ),
+    "archive": "M21 8v13H3V8M1 3h22v5H1zM10 12h4",
+    "restore": "M1 4v6h6M3.51 15a9 9 0 1 0 2.13-9.36L1 10",
 }
 
 #: Rendered icons cached by (name, color, size) to avoid re-rendering.
