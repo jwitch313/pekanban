@@ -1039,6 +1039,219 @@ def test_board_view_filters_visible_tasks(qapp) -> None:
     assert [card.task_id for card in cards] == [2]
 
 
+def test_board_view_skips_archived_tasks(qapp) -> None:
+    """load_board must not render archived tasks in the normal board view."""
+    from kanban.models import Board, BoardColumn, Task
+
+    board = Board(id=1, name="B")
+    column = BoardColumn(id=1, title="To Do", order_idx=0)
+    live = Task(id=1, title="Live", priority=Priority.LOW, order_idx=0)
+    gone = Task(id=2, title="Gone", priority=Priority.HIGH, order_idx=1)
+    gone.archived = True
+    column.tasks.extend([live, gone])
+    board.columns.append(column)
+
+    view = BoardView()
+    view.load_board(board)
+    cards = view.widget().findChildren(CardWidget)
+    assert [card.task_id for card in cards] == [1]
+
+
+def test_board_view_load_archived_renders_cards(qapp) -> None:
+    """load_archived renders each archived task as an archived card."""
+    from kanban.models import Board, BoardColumn, Task
+
+    board = Board(id=1, name="B")
+    column = BoardColumn(id=1, title="To Do", order_idx=0)
+    a = Task(id=1, title="A", priority=Priority.LOW, order_idx=0)
+    a.archived = True
+    column.tasks.append(a)
+    board.columns.append(column)
+
+    view = BoardView()
+    view.load_archived([a])
+    cards = view.widget().findChildren(CardWidget)
+    assert [card.task_id for card in cards] == [1]
+    assert all(card.archived for card in cards)
+
+
+def test_board_view_load_archived_empty(qapp) -> None:
+    """An empty archive shows a placeholder and no cards."""
+    from PySide6.QtWidgets import QLabel
+
+    view = BoardView()
+    view.load_archived([])
+    assert view.widget().findChildren(CardWidget) == []
+    assert view.widget().findChild(QLabel, "archivedEmpty") is not None
+
+
+def test_board_view_forwards_archive_signals(qapp) -> None:
+    """The board view forwards archive/restore requests from archived cards."""
+    from kanban.models import Board, BoardColumn, Task
+
+    board = Board(id=1, name="B")
+    column = BoardColumn(id=1, title="To Do", order_idx=0)
+    a = Task(id=7, title="A", priority=Priority.LOW, order_idx=0)
+    a.archived = True
+    column.tasks.append(a)
+    board.columns.append(column)
+
+    view = BoardView()
+    archived: list[int] = []
+    restored: list[int] = []
+    view.archive_requested.connect(archived.append)
+    view.restore_requested.connect(restored.append)
+    view.load_archived([a])
+    card = view.widget().findChild(CardWidget)
+    assert card is not None
+    card.restore_requested.emit(7)
+    assert restored == [7]
+
+
+def test_clear_columns_removes_archived_view(qapp) -> None:
+    """clear_columns must remove the archived-view widget, not just columns."""
+    from kanban.models import Board, BoardColumn, Task
+
+    board = Board(id=1, name="B")
+    column = BoardColumn(id=1, title="To Do", order_idx=0)
+    a = Task(id=1, title="A", priority=Priority.LOW, order_idx=0)
+    a.archived = True
+    column.tasks.append(a)
+    board.columns.append(column)
+
+    view = BoardView()
+    view.load_archived([a])
+    assert view.widget().findChild(CardWidget) is not None
+    view.clear_columns()
+    assert view.widget().findChild(CardWidget) is None
+
+
+def test_search_bar_has_view_archive_button(qapp) -> None:
+    """The search bar exposes a 'View archive' button with an icon."""
+    from PySide6.QtWidgets import QPushButton
+
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    button = bar.findChild(QPushButton, "viewArchiveButton")
+    assert button is not None
+    assert button.accessibleName() == "View archive"
+    assert not button.icon().isNull()
+
+
+def test_search_bar_view_archive_button_emits(qapp) -> None:
+    """Clicking the 'View archive' button emits view_archive_requested."""
+    from PySide6.QtWidgets import QPushButton
+
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    emitted: list[bool] = []
+    bar.view_archive_requested.connect(lambda: emitted.append(True))
+    bar.findChild(QPushButton, "viewArchiveButton").click()
+    assert emitted == [True]
+
+
+def test_view_archive_button_left_of_theme(window: MainWindow) -> None:
+    """The 'View archive' button sits to the left of the right-justified theme button."""
+    from PySide6.QtWidgets import QPushButton
+
+    layout = window._search_bar.layout()
+    assert layout is not None
+    names: list[str] = []
+    for i in range(layout.count()):
+        widget = layout.itemAt(i).widget()
+        if isinstance(widget, QPushButton):
+            names.append(widget.accessibleName())
+    assert "View archive" in names
+    assert "Theme" in names
+    assert names.index("View archive") < names.index("Theme")
+
+
+def test_window_archive_task_hides_from_board(window: MainWindow) -> None:
+    """Archiving a task removes it from the normal board view."""
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Archive me")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+
+    window._on_task_archived(task.id)
+
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    assert board.columns[0].tasks[0].archived is True
+    cards = window._board_view.widget().findChildren(CardWidget)
+    assert all(card.task_id != task.id for card in cards)
+
+
+def test_window_view_archive_shows_archived(window: MainWindow) -> None:
+    """Toggling archive view shows archived tasks in a single widget."""
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Archive me")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+    window._on_task_archived(task.id)
+
+    window._on_view_archive_toggled()
+    assert window._viewing_archive is True
+    cards = window._board_view.widget().findChildren(CardWidget)
+    assert [card.task_id for card in cards] == [task.id]
+    assert all(card.archived for card in cards)
+
+
+def test_window_view_archive_toggles_back(window: MainWindow) -> None:
+    """Toggling again returns to the normal board view."""
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Live task")
+
+    window._on_view_archive_toggled()
+    assert window._viewing_archive is True
+    window._on_view_archive_toggled()
+    assert window._viewing_archive is False
+    # Back in board view: the live task is visible again.
+    cards = window._board_view.widget().findChildren(CardWidget)
+    assert any(card.task_id for card in cards)
+
+
+def test_window_restore_task_brings_back(window: MainWindow) -> None:
+    """Restoring an archived task clears its archived flag and shows it on the board."""
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    column = board.columns[0]
+    window._on_task_added(column.id, "Restore me")
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    task = board.columns[0].tasks[0]
+    window._on_task_archived(task.id)
+
+    window._on_view_archive_toggled()
+    window._on_task_restored(task.id)
+
+    board = window._service.get_board_full(window._current_board_id)
+    assert board is not None
+    restored = next(t for t in board.columns[0].tasks if t.id == task.id)
+    assert restored.archived is False
+
+
+def test_window_switching_board_resets_archive_view(window: MainWindow) -> None:
+    """Selecting a different board exits the archive view."""
+    window._on_board_added("Second Board")
+    window._on_view_archive_toggled()
+    assert window._viewing_archive is True
+
+    first_board = window._service.list_boards()[0]
+    window._on_board_selected(first_board.id)
+    assert window._viewing_archive is False
+
+
 def test_label_panel_add_and_delete(qapp) -> None:
     from kanban.ui.label_panel import PRESET_COLORS, LabelPanel
 
@@ -1188,7 +1401,7 @@ def test_search_bar_query_width_is_bounded(qapp) -> None:
 
 
 def test_search_bar_theme_button_is_right_justified(qapp) -> None:
-    """The theme button sits at the far right, separated by a stretch."""
+    """The theme button sits at the far right, after the archive button and a stretch."""
     from PySide6.QtWidgets import QSpacerItem
 
     from kanban.ui.search_bar import SearchBar
@@ -1197,13 +1410,17 @@ def test_search_bar_theme_button_is_right_justified(qapp) -> None:
     layout = bar.layout()
     assert layout is not None
     count = layout.count()
-    assert count >= 2
+    assert count >= 3
     # The last item is the theme button.
     last = layout.itemAt(count - 1)
     assert last is not None
     assert last.widget() is bar._theme_button
-    # The item immediately before it is a spacer (the stretch).
-    spacer = layout.itemAt(count - 2)
+    # The item immediately before it is the archive button.
+    archive = layout.itemAt(count - 2)
+    assert archive is not None
+    assert archive.widget() is bar._archive_button
+    # The item before that is a spacer (the stretch).
+    spacer = layout.itemAt(count - 3)
     assert spacer is not None
     assert isinstance(spacer, QSpacerItem)
 

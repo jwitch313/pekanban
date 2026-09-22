@@ -61,6 +61,7 @@ class Task(Base, TimestampMixin):
     status_color: Mapped[str | None] = mapped_column(String(20), nullable=True)
     order_idx: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     completed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    archived: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     column: Mapped[BoardColumn] = relationship("BoardColumn", back_populates="tasks")
     subtasks: Mapped[list[Subtask]] = relationship(

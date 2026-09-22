@@ -3,9 +3,17 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QScrollArea, QWidget
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
+)
 
-from kanban.models import Board
+from kanban.models import Board, Task
+from kanban.ui.card_widget import CardWidget, LabelSpec
 from kanban.ui.column_widget import ColumnWidget
 
 
@@ -27,6 +35,8 @@ class BoardView(QScrollArea):
     due_date_changed = Signal(int, object)  # task_id, date | None
     description_changed = Signal(int, object)  # task_id, str | None
     title_changed = Signal(int, str)  # task_id, new_title
+    archive_requested = Signal(int)  # task_id
+    restore_requested = Signal(int)  # task_id
 
     def __init__(self) -> None:
         super().__init__()
@@ -42,13 +52,13 @@ class BoardView(QScrollArea):
         self.setWidget(container)
 
     def clear_columns(self) -> None:
-        """Remove all column widgets from the view."""
+        """Remove all widgets (columns and the archived view) from the view."""
         for i in range(self._column_layout.count() - 1, -1, -1):
             item = self._column_layout.itemAt(i)
             if item is None:
                 continue
             widget = item.widget()
-            if isinstance(widget, ColumnWidget):
+            if widget is not None:
                 self._column_layout.takeAt(i)
                 widget.setParent(None)
                 widget.deleteLater()
@@ -83,6 +93,8 @@ class BoardView(QScrollArea):
         for index, column in enumerate(board.columns):
             tasks = []
             for task in column.tasks:
+                if task.archived:
+                    continue
                 if visible_task_ids is not None and task.id not in visible_task_ids:
                     continue
                 labels = [(label.id, label.name, label.color) for label in task.labels]
@@ -101,6 +113,63 @@ class BoardView(QScrollArea):
             self.add_column_widget(
                 ColumnWidget(column.id, column.title, tasks, index, board_labels=board_labels)
             )
+
+    def load_archived(
+        self,
+        tasks: list[Task],
+        board_labels: list[LabelSpec] | None = None,
+    ) -> None:
+        """Render archived tasks in a single full-width widget.
+
+        The archived view replaces the normal columns: one large widget fills
+        the display area and lists each archived task as a full-width card.
+        """
+        self.clear_columns()
+        board_labels = list(board_labels or [])
+
+        container = QWidget()
+        container.setObjectName("archivedView")
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(12)
+
+        if not tasks:
+            placeholder = QLabel("No archived tasks.")
+            placeholder.setObjectName("archivedEmpty")
+            layout.addWidget(placeholder)
+            layout.addStretch(1)
+            self._column_layout.insertWidget(self._column_layout.count() - 1, container)
+            return
+
+        for task in tasks:
+            labels = [(label.id, label.name, label.color) for label in task.labels]
+            subtasks = [(sub.id, sub.title, sub.completed) for sub in task.subtasks]
+            card = CardWidget(
+                task.id,
+                task.title,
+                task.priority,
+                task.due_date,
+                labels=labels,
+                board_labels=board_labels,
+                subtasks=subtasks,
+                description=task.description,
+                archived=True,
+            )
+            card.archive_requested.connect(self.archive_requested)
+            card.restore_requested.connect(self.restore_requested)
+            card.delete_requested.connect(self.task_deleted)
+            card.label_assign_requested.connect(self.label_assign_requested)
+            card.label_unassign_requested.connect(self.label_unassign_requested)
+            card.subtask_added.connect(self.subtask_added)
+            card.subtask_toggled.connect(self.subtask_toggled)
+            card.subtask_deleted.connect(self.subtask_deleted)
+            card.priority_changed.connect(self.priority_changed)
+            card.due_date_changed.connect(self.due_date_changed)
+            card.description_changed.connect(self.description_changed)
+            card.title_changed.connect(self.title_changed)
+            layout.addWidget(card)
+        layout.addStretch(1)
+        self._column_layout.insertWidget(self._column_layout.count() - 1, container)
 
     def focus_first_task_input(self) -> bool:
         """Focus the first column's add-task field. Returns True if one exists."""

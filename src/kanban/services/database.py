@@ -27,6 +27,7 @@ from sqlalchemy import (
     Table,
     func,
     select,
+    text,
 )
 from sqlalchemy import (
     create_engine as create_sqlalchemy_engine,
@@ -72,8 +73,27 @@ def _migration_0001_initial(engine: Engine) -> None:
     Base.metadata.create_all(engine)
 
 
+def _migration_0002_task_archived(engine: Engine) -> None:
+    """Add the ``archived`` flag to existing tasks.
+
+    Fresh databases already get the column from the ORM metadata (migration 1);
+    this migration only runs on databases created before the column existed.
+    """
+    from sqlalchemy import inspect
+
+    inspector = inspect(engine)
+    if not inspector.has_table("tasks"):
+        return
+    existing = {column["name"] for column in inspector.get_columns("tasks")}
+    if "archived" in existing:
+        return
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE tasks ADD COLUMN archived BOOLEAN NOT NULL DEFAULT 0"))
+
+
 MIGRATIONS: list[Migration] = [
     Migration(version=1, name="initial schema", apply=_migration_0001_initial),
+    Migration(version=2, name="task archived flag", apply=_migration_0002_task_archived),
 ]
 
 # Bookkeeping table tracking which migrations have been applied.

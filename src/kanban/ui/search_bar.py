@@ -38,6 +38,7 @@ class SearchBar(QFrame):
 
     filters_changed = Signal(dict)
     theme_selected = Signal(str)
+    view_archive_requested = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -126,10 +127,28 @@ class SearchBar(QFrame):
         self._theme_button.setAccessibleName("Theme")
         self._theme_button.setToolTip("Theme")
         self._theme_button.setMenu(self._build_theme_menu())
-        # Push the theme button to the far right; the search box and filter
-        # controls stay left-justified with the extra space absorbed here.
+
+        self._archive_button = QPushButton()
+        self._archive_button.setObjectName("viewArchiveButton")
+        self._archive_button.setIcon(icons.icon("archive"))
+        self._archive_button.setAccessibleName("View archive")
+        self._archive_button.setToolTip("View archived tasks")
+        self._archive_button.clicked.connect(self.view_archive_requested.emit)
+
+        # Push the archive + theme buttons to the far right; the search box and
+        # filter controls stay left-justified with the extra space absorbed here.
+        # The archive button sits to the left of the theme button so the two
+        # stay grouped on the right edge.
         layout.addStretch(1)
+        layout.addWidget(self._archive_button)
         layout.addWidget(self._theme_button)
+
+    def set_viewing_archive(self, viewing: bool) -> None:
+        """Reflect whether the archive view is active on the archive button."""
+        if viewing:
+            self._archive_button.setToolTip("Back to board")
+        else:
+            self._archive_button.setToolTip("View archived tasks")
 
     def _bound_query_width(self) -> None:
         """Clamp the search box to a readable width (24-64 characters).

@@ -49,6 +49,7 @@ class MainWindow(QMainWindow):
         self._current_board_id: int | None = None
         self._filters: Filters = {}
         self._resolved_theme: ThemeMode | None = None
+        self._viewing_archive = False
 
         self.setWindowTitle("KanBan")
         self.resize(1100, 700)
@@ -95,8 +96,11 @@ class MainWindow(QMainWindow):
         self._board_view.due_date_changed.connect(self._on_due_date_changed)
         self._board_view.description_changed.connect(self._on_description_changed)
         self._board_view.title_changed.connect(self._on_title_changed)
+        self._board_view.archive_requested.connect(self._on_task_archived)
+        self._board_view.restore_requested.connect(self._on_task_restored)
         self._search_bar.filters_changed.connect(self._apply_filters)
         self._search_bar.theme_selected.connect(self._on_theme_selected)
+        self._search_bar.view_archive_requested.connect(self._on_view_archive_toggled)
         self._search_bar.set_theme_mode(self._settings.theme_mode())
 
         self._setup_shortcuts()
@@ -126,8 +130,14 @@ class MainWindow(QMainWindow):
             return
         board = self._service.get_board_full(self._current_board_id)
         if board is not None:
-            visible = self._compute_visible_task_ids(board)
-            self._board_view.load_board(board, visible)
+            if self._viewing_archive:
+                self._board_view.load_archived(
+                    self._service.list_archived_tasks(self._current_board_id),
+                    board_labels=[(label.id, label.name, label.color) for label in board.labels],
+                )
+            else:
+                visible = self._compute_visible_task_ids(board)
+                self._board_view.load_board(board, visible)
             self._refresh_labels()
             self._search_bar.load_columns([(column.id, column.title) for column in board.columns])
             self._search_bar.load_labels([(label.id, label.name) for label in board.labels])
@@ -182,6 +192,7 @@ class MainWindow(QMainWindow):
     def _on_board_selected(self, board_id: int) -> None:
         """Switch to the selected board."""
         self._current_board_id = board_id
+        self._exit_archive_view()
         self._reset_filters()
         self._load_current_board()
 
@@ -190,6 +201,7 @@ class MainWindow(QMainWindow):
         board = self._service.create_board(name)
         self._current_board_id = board.id
         self._refresh_sidebar()
+        self._exit_archive_view()
         self._reset_filters()
         self._load_current_board()
 
@@ -209,6 +221,7 @@ class MainWindow(QMainWindow):
             else:
                 self._current_board_id = self._service.create_board("My Board").id
         self._refresh_sidebar()
+        self._exit_archive_view()
         self._reset_filters()
         self._load_current_board()
 
@@ -303,6 +316,28 @@ class MainWindow(QMainWindow):
         """Rename a task's title and refresh."""
         self._service.update_task(task_id, title=title)
         self._load_current_board()
+
+    def _on_task_archived(self, task_id: int) -> None:
+        """Archive a task and refresh the current view."""
+        self._service.archive_task(task_id)
+        self._load_current_board()
+
+    def _on_task_restored(self, task_id: int) -> None:
+        """Restore an archived task and refresh the current view."""
+        self._service.restore_task(task_id)
+        self._load_current_board()
+
+    def _on_view_archive_toggled(self) -> None:
+        """Toggle between the normal board view and the archive view."""
+        self._viewing_archive = not self._viewing_archive
+        self._search_bar.set_viewing_archive(self._viewing_archive)
+        self._load_current_board()
+
+    def _exit_archive_view(self) -> None:
+        """Return to the normal board view (used when switching boards)."""
+        if self._viewing_archive:
+            self._viewing_archive = False
+            self._search_bar.set_viewing_archive(False)
 
     def _reset_filters(self) -> None:
         """Clear the active filters and reset the search bar (no re-render)."""
