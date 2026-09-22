@@ -78,6 +78,21 @@ def test_card_children_blend_into_card_background() -> None:
         )
 
 
+def test_column_title_background_is_transparent() -> None:
+    """The column heading must blend into the column's own background.
+
+    The title label sits inside the column, so it must not paint its own
+    background (which would differ from the column area). A transparent
+    background lets the column color show through in both themes.
+    """
+    import re
+
+    for qss in (LIGHT_QSS, DARK_QSS):
+        assert re.search(r"#columnTitle\s*\{[^}]*background:\s*transparent", qss), (
+            "#columnTitle must have a transparent background"
+        )
+
+
 def test_column_and_card_backgrounds_differ() -> None:
     """The column and card backgrounds must not be identical (readability)."""
     import re

@@ -76,7 +76,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     border: 1px solid #dfe2e7;
     border-radius: 10px;
 }
-#columnTitle { color: #1f2328; font-weight: bold; font-size: 14px; }
+#columnTitle { background: transparent; color: #1f2328; font-weight: bold; font-size: 14px; }
 #card {
     background-color: #ffffff;
     border: 1px solid #dfe2e7;
@@ -149,7 +149,7 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
     border: 1px solid #303136;
     border-radius: 10px;
 }
-#columnTitle { color: #e6e6e6; font-weight: bold; font-size: 14px; }
+#columnTitle { background: transparent; color: #e6e6e6; font-weight: bold; font-size: 14px; }
 #card {
     background-color: #2c2d31;
     border: 1px solid #3a3b40;
