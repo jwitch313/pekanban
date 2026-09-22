@@ -94,6 +94,23 @@ def test_card_should_start_drag(qapp) -> None:
     assert card._should_start_drag(QPoint(10, 0)) is True
 
 
+def test_card_drag_pixmap_is_non_null(qapp) -> None:
+    card = CardWidget(1, "Task", Priority.LOW, None)
+    pixmap = card._build_drag_pixmap()
+    assert not pixmap.isNull()
+    assert pixmap.width() > 0 and pixmap.height() > 0
+
+
+def test_card_drag_pixmap_elides_long_title(qapp) -> None:
+    long_title = "A" * 64
+    card = CardWidget(1, long_title, Priority.LOW, None)
+    elided = card._elide_drag_title(long_title)
+    assert len(elided) <= 32
+    assert elided.endswith("\u2026")
+    # Short titles are left untouched.
+    assert card._elide_drag_title("Short") == "Short"
+
+
 def test_card_overdue_highlighting(qapp) -> None:
     past = date.today() - timedelta(days=1)
     future = date.today() + timedelta(days=1)

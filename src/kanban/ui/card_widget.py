@@ -17,9 +17,11 @@ from PySide6.QtGui import (
     QBrush,
     QColor,
     QDrag,
+    QFontMetrics,
     QIcon,
     QMouseEvent,
     QPainter,
+    QPalette,
     QPen,
     QPixmap,
 )
@@ -565,10 +567,56 @@ class CardWidget(QFrame):
             return False
         return (current - self._drag_start).manhattanLength() > _DRAG_THRESHOLD
 
+    def _elide_drag_title(self, title: str) -> str:
+        """Return ``title`` truncated to 32 characters with an ellipsis if needed."""
+        if len(title) <= 32:
+            return title
+        return title[:31] + "\u2026"
+
+    def _build_drag_pixmap(self) -> QPixmap:
+        """Render a small preview of this card to use as the drag image.
+
+        The preview shows the (elided) task title on a themed rounded panel so
+        the user sees a miniature of the card while dragging, rather than the
+        default plus-sign cursor.
+        """
+        title = self._elide_drag_title(self._title_label.text())
+        font = self.font()
+        font.setBold(True)
+        metrics = QFontMetrics(font)
+        text_width = metrics.horizontalAdvance(title)
+        padding = 12
+        width = min(max(text_width + padding * 2, 96), 240)
+        height = metrics.height() + padding * 2
+
+        pixmap = QPixmap(width, height)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+
+        palette = self.palette()
+        background = palette.color(QPalette.ColorRole.Window)
+        text_color = palette.color(QPalette.ColorRole.WindowText)
+        border = QColor(background)
+        border.setAlpha(160)
+
+        painter.setPen(QPen(border, 1))
+        painter.setBrush(QBrush(background))
+        painter.drawRoundedRect(0, 0, width - 1, height - 1, 8, 8)
+
+        painter.setPen(text_color)
+        painter.setFont(font)
+        painter.drawText(0, 0, width, height, int(Qt.AlignmentFlag.AlignCenter), title)
+        painter.end()
+        return pixmap
+
     def _start_drag(self) -> None:
-        """Begin a Qt drag carrying this card's task id."""
+        """Begin a Qt drag carrying this card's task id and a mini preview."""
         drag = QDrag(self)
         drag.setMimeData(self.make_mime_data())
+        drag.setPixmap(self._build_drag_pixmap())
+        drag.setHotSpot(QPoint(0, 0))
         drag.exec(Qt.DropAction.MoveAction)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802 - Qt naming
