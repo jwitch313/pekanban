@@ -11,8 +11,7 @@ Built with **Python**, **PySide6 (Qt 6)**, and **SQLAlchemy**.
 
 ## Status
 
-This project is under active development. See `plans/SDR_KanBan_App.md` for the
-full Software Design Requirements and the implementation roadmap.
+This project is under active development.
 
 ## Development
 
@@ -65,4 +64,5 @@ executable's location, so moving or updating the app never touches your data.
 
 ## License
 
-MIT
+PeKanBan is licensed under the GNU General Public License v3 (GPLv3). See the
+[LICENSE](LICENSE) file for the full text.

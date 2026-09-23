@@ -63,3 +63,9 @@ desktop.ini
 # Logs
 *.log
 logs/
+
+# Local working folders (kept on disk, not committed)
+agents/
+plans/
+rules/
+skills/

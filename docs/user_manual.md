@@ -225,6 +225,16 @@ The build produces a one-directory layout under `dist/PeKanBan/` containing
 
 ---
 
+## 13. License
+
+PeKanBan is free and open-source software, licensed under the **GNU General
+Public License v3 (GPLv3)**. You are free to use, study, modify, and share the
+software, subject to the terms of the license. The full license text is
+available in the [`LICENSE`](../LICENSE) file at the root of the repository and
+at <https://www.gnu.org/licenses/gpl-3.0.html>.
+
+---
+
 ## Quick Reference
 
 | I want to… | Do this |
