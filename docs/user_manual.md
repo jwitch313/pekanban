@@ -16,8 +16,7 @@ When you launch PeKanBan for the first time:
 
 1. The main window opens at a default size (1100 × 700).
 2. A starter board named **My Board** is created automatically.
-3. The board appears in the **Boards** list on the left, and its columns are
-   shown in the main area.
+3. The board appears in the **Boards** list on the left, and its columns are shown in the main area.
 
 The application remembers your data between sessions. Your data lives in a
 hidden folder in your user profile (see [Data Storage & Backup](#10-data-storage--backup)).
