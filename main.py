@@ -1,4 +1,4 @@
-"""PyInstaller entry point for the KanBan desktop app.
+"""PyInstaller entry point for the PeKanBan desktop app.
 
 This thin wrapper exists so PyInstaller has a concrete file to analyse.
 The real entry logic lives in :mod:`kanban.app`.

@@ -1,6 +1,6 @@
-# KanBan — User Manual
+# PeKanBan — User Manual
 
-KanBan is a local, offline Kanban board application for Windows. It lets you
+PeKanBan is a local, offline Kanban board application for Windows. It lets you
 organize work into **boards**, split each board into **columns**, and track
 individual **tasks** (cards) with priorities, due dates, labels, and sub-tasks.
 All data is stored on your machine — no account or internet connection is
@@ -12,7 +12,7 @@ required.
 
 ### First run
 
-When you launch KanBan for the first time:
+When you launch PeKanBan for the first time:
 
 1. The main window opens at a default size (1100 × 700).
 2. A starter board named **My Board** is created automatically.
@@ -46,7 +46,7 @@ section of the sidebar.
 - **Rename board** — double-click a board name (or click the **✎** button) to
   edit it inline, then press **Enter** to commit.
 - **Delete board** — select a board and click the **✕** button. If you delete
-  the board you are currently viewing, KanBan switches to another board (or
+  the board you are currently viewing, PeKanBan switches to another board (or
   recreates a starter board if none remain).
 
 > **Note:** Deleting a board removes its columns, tasks, labels, and sub-tasks.
@@ -169,13 +169,13 @@ combination of the following can be active at once:
 
 ## 10. Appearance (Dark Mode)
 
-KanBan follows your **Windows system theme** automatically:
+PeKanBan follows your **Windows system theme** automatically:
 
-- If Windows is set to **Light**, KanBan uses a light appearance.
-- If Windows is set to **Dark**, KanBan uses a dark appearance.
+- If Windows is set to **Light**, PeKanBan uses a light appearance.
+- If Windows is set to **Dark**, PeKanBan uses a dark appearance.
 
 The theme is detected at startup, so you do not need to configure anything.
-Change your Windows appearance setting and relaunch KanBan to see the change.
+Change your Windows appearance setting and relaunch PeKanBan to see the change.
 
 ---
 
@@ -197,7 +197,7 @@ C:\Users\<YourName>\.kanban\kanban.db
 
 **Backing up:** to back up your data, simply copy the entire `.kanban` folder
 to another location (for example, an external drive or cloud storage). To
-restore, close KanBan and copy the folder back into place.
+restore, close PeKanBan and copy the folder back into place.
 
 > **Tip:** Because the database is a single file, copying `kanban.db` while the
 > app is closed is the safest way to back up.
@@ -206,7 +206,7 @@ restore, close KanBan and copy the folder back into place.
 
 ## 12. Building the Windows Executable
 
-If you are building KanBan from source, the standalone Windows executable is
+If you are building PeKanBan from source, the standalone Windows executable is
 produced with [PyInstaller](https://pyinstaller.org/). See the
 [README](../README.md) for the full build instructions. In short:
 
@@ -220,8 +220,8 @@ powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 ./scripts/build.sh
 ```
 
-The build produces a one-directory layout under `dist/KanBan/` containing
-`KanBan.exe` and its `_internal/` support files.
+The build produces a one-directory layout under `dist/PeKanBan/` containing
+`PeKanBan.exe` and its `_internal/` support files.
 
 ---
 

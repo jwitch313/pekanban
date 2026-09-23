@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import date
 from typing import cast
 
-from PySide6.QtGui import QCloseEvent, QKeySequence, QShortcut, QShowEvent
+from PySide6.QtGui import QCloseEvent, QIcon, QKeySequence, QShortcut, QShowEvent
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from kanban.assets import asset_path
 from kanban.models import Board, Priority
 from kanban.services.database import Database, create_database
 from kanban.services.settings_service import SettingsService
@@ -37,7 +38,7 @@ from kanban.ui.titlebar import set_title_bar_color
 
 
 class MainWindow(QMainWindow):
-    """Top-level window for the KanBan application."""
+    """Top-level window for the PeKanBan application."""
 
     def __init__(self, database: Database | None = None) -> None:
         super().__init__()
@@ -51,7 +52,8 @@ class MainWindow(QMainWindow):
         self._resolved_theme: ThemeMode | None = None
         self._viewing_archive = False
 
-        self.setWindowTitle("KanBan")
+        self.setWindowTitle("PeKanBan")
+        self.setWindowIcon(QIcon(str(asset_path("logo-icon.svg"))))
         self.resize(1100, 700)
         self._apply_theme(self._settings.theme_mode())
 

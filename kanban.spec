@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for the KanBan desktop app.
+"""PyInstaller spec file for the PeKanBan desktop app.
 
 Builds a one-directory (``--onedir``) windowed executable. One-directory is
 preferred over one-file for a Qt desktop app: it starts faster and avoids the
@@ -15,6 +15,9 @@ from PyInstaller.utils.hooks import collect_all
 # built-in hook already handles, but collecting explicitly keeps the build
 # robust across PySide6 point releases.
 datas, binaries, hiddenimports = collect_all("PySide6")
+
+# Bundle the logo assets (window icon, wordmark) into the app folder.
+datas += [("assets", "assets")]
 
 a = Analysis(
     ["main.py"],
@@ -36,7 +39,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="KanBan",
+    name="PeKanBan",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -51,5 +54,5 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,
-    name="KanBan",
+    name="PeKanBan",
 )

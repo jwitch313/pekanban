@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 200" width="560" height="200">
+  <!-- PeKanban logo: central ridge pecan (tilted) + wordmark -->
+  <g transform="rotate(-20 100 100)">
+    <g fill="none" stroke="#8C5A2B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 24 100
+               C 32 72, 64 58, 100 58
+               C 136 58, 168 72, 176 100
+               C 168 128, 136 142, 100 142
+               C 64 142, 32 128, 24 100 Z"/>
+      <path d="M 46 100 C 76 90, 124 90, 154 100"/>
+    </g>
+  </g>
+  <text x="215" y="121" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="62" font-weight="600" fill="#8C5A2B">PeKanban</text>
+</svg>

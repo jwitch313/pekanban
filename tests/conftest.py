@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for the KanBan test suite."""
+"""Shared pytest fixtures for the PeKanBan test suite."""
 
 from __future__ import annotations
 

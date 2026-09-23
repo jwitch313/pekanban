@@ -1,4 +1,4 @@
-"""SVG-based icon factory for the KanBan UI.
+"""SVG-based icon factory for the PeKanBan UI.
 
 Qt's built-in standard icons lack the specific glyphs the app needs (pencil,
 tag, arrows, sun/moon). This module renders a small set of inline, Feather-style

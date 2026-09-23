@@ -9,7 +9,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    """Declarative base class for all KanBan ORM models.
+    """Declarative base class for all PeKanBan ORM models.
 
     All models inherit from this class so that ``Base.metadata`` contains the
     full schema for migrations and ``create_all``.

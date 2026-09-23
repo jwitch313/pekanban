@@ -1,4 +1,4 @@
-# KanBan
+# PeKanBan
 
 A feature-rich, single-user Kanban task management application for Windows 10/11.
 
@@ -53,12 +53,12 @@ bash scripts/build.sh
 Both scripts run `uv sync` and then `pyinstaller kanban.spec`. The result is:
 
 ```
-dist/KanBan/
-├── KanBan.exe        # launch this
+dist/PeKanBan/
+├── PeKanBan.exe      # launch this
 └── _internal/        # bundled Python + Qt runtime
 ```
 
-**Deploy** by copying the entire `dist/KanBan/` folder to the target machine.
+**Deploy** by copying the entire `dist/PeKanBan/` folder to the target machine.
 No Python installation is required on the target. User data (SQLite database
 and file attachments) is stored in `%USERPROFILE%\.kanban\`, independent of the
 executable's location, so moving or updating the app never touches your data.

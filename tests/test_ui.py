@@ -23,6 +23,14 @@ def test_default_board_created(window: MainWindow) -> None:
     assert len(window._service.list_boards()) == 1
 
 
+def test_window_title_is_pekanban(window: MainWindow) -> None:
+    assert window.windowTitle() == "PeKanBan"
+
+
+def test_window_icon_is_set(window: MainWindow) -> None:
+    assert not window.windowIcon().isNull()
+
+
 def test_no_new_board_created_on_relaunch(qapp, tmp_path) -> None:
     """A second launch over an existing DB must reuse the board, not add one."""
     from kanban.services.database import create_database

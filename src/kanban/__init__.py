@@ -1,4 +1,4 @@
-"""KanBan — a feature-rich, single-user Kanban task manager for Windows."""
+"""PeKanBan — a feature-rich, single-user Kanban task manager for Windows."""
 
 from __future__ import annotations
 

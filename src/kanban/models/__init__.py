@@ -1,4 +1,4 @@
-"""ORM models for the KanBan application.
+"""ORM models for the PeKanBan application.
 
 Importing this package registers every model on ``Base.metadata`` so that
 migrations and ``create_all`` see the full schema.

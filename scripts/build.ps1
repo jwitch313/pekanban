@@ -1,9 +1,9 @@
-# build.ps1 - Build the KanBan Windows executable with PyInstaller.
+# build.ps1 - Build the PeKanBan Windows executable with PyInstaller.
 #
 # Usage (from the repository root):
 #   powershell -ExecutionPolicy Bypass -File scripts\build.ps1
 #
-# Output: dist\KanBan\KanBan.exe  (one-directory layout)
+# Output: dist\PeKanBan\PeKanBan.exe  (one-directory layout)
 #
 # Prerequisites:
 #   - uv installed and on PATH
@@ -19,13 +19,13 @@ Write-Host "==> Building executable (pyinstaller kanban.spec)..." -ForegroundCol
 uv run pyinstaller kanban.spec --noconfirm
 if ($LASTEXITCODE -ne 0) { throw "pyinstaller build failed" }
 
-$exe = Join-Path $PSScriptRoot "..\dist\KanBan\KanBan.exe"
+$exe = Join-Path $PSScriptRoot "..\dist\PeKanBan\PeKanBan.exe"
 $exe = (Resolve-Path $exe).Path
 
 if (Test-Path $exe) {
     Write-Host "==> Build complete." -ForegroundColor Green
     Write-Host "    Executable: $exe"
-    Write-Host "    Folder:     dist\KanBan - copy the whole folder to deploy."
+    Write-Host "    Folder:     dist\PeKanBan - copy the whole folder to deploy."
 } else {
     throw "Expected output not found: $exe"
 }

@@ -1,4 +1,4 @@
-"""Service layer for the KanBan application (business logic, no GUI)."""
+"""Service layer for the PeKanBan application (business logic, no GUI)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Application entry point for the KanBan desktop app."""
+"""Application entry point for the PeKanBan desktop app."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ def main() -> int:
     from kanban.main_window import MainWindow
 
     app = QApplication([])
-    app.setApplicationName("KanBan")
+    app.setApplicationName("PeKanBan")
     window = MainWindow()
     window.show()
     return app.exec()
