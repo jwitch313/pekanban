@@ -116,7 +116,7 @@ class MainWindow(QMainWindow):
             if boards:
                 self._current_board_id = boards[0].id
             else:
-                self._current_board_id = self._service.create_board("My Board").id
+                self._current_board_id = self._service.create_default_board().id
         self._refresh_sidebar()
         self._load_current_board()
 
@@ -220,7 +220,7 @@ class MainWindow(QMainWindow):
             if boards:
                 self._current_board_id = boards[0].id
             else:
-                self._current_board_id = self._service.create_board("My Board").id
+                self._current_board_id = self._service.create_default_board().id
         self._refresh_sidebar()
         self._exit_archive_view()
         self._reset_filters()

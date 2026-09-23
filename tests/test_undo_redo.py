@@ -182,9 +182,10 @@ def test_window_shortcuts_registered(window: MainWindow) -> None:
 
 
 def test_window_undo_redo_roundtrip(window: MainWindow) -> None:
+    window._on_column_added("Temp")
     board = window._service.get_board_full(window._current_board_id)
     assert board is not None
-    column = board.columns[0]
+    column = board.columns[-1]
 
     window._on_task_added(column.id, "Undoable")
     assert len(window._service.list_tasks_in_column(column.id)) == 1

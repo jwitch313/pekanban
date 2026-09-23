@@ -8,7 +8,12 @@ import pytest
 
 from kanban.models import Priority
 from kanban.services.database import Database
-from kanban.services.task_service import TaskService
+from kanban.services.task_service import (
+    DEFAULT_COLUMNS,
+    PLACEHOLDER_TASK_DESCRIPTION,
+    PLACEHOLDER_TASK_TITLE,
+    TaskService,
+)
 
 
 @pytest.fixture
@@ -20,6 +25,25 @@ def test_create_board_with_default_column(service: TaskService) -> None:
     board = service.create_board("Work")
     assert board.id is not None
     assert [c.title for c in board.columns] == ["To Do"]
+
+
+def test_create_default_board_seeds_columns_and_placeholder(service: TaskService) -> None:
+    created = service.create_default_board()
+    assert created.id is not None
+    board = service.get_board_full(created.id)
+    assert board is not None
+    assert [c.title for c in board.columns] == DEFAULT_COLUMNS
+    assert len(board.columns) == 4
+
+    first = board.columns[0]
+    assert len(first.tasks) == 1
+    task = first.tasks[0]
+    assert task.title == PLACEHOLDER_TASK_TITLE
+    assert task.description == PLACEHOLDER_TASK_DESCRIPTION
+
+    # Only the first column carries the placeholder card.
+    for column in board.columns[1:]:
+        assert column.tasks == []
 
 
 def test_create_and_get_task(service: TaskService) -> None:
@@ -435,7 +459,7 @@ def test_list_archived_tasks(service: TaskService) -> None:
     board = service.create_board("Work")
     todo = board.columns[0]
     a = service.create_task(todo.id, "A")
-    b = service.create_task(todo.id, "B")
+    service.create_task(todo.id, "B")
     c = service.create_task(todo.id, "C")
     service.archive_task(a.id)
     service.archive_task(c.id)

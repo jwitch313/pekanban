@@ -71,27 +71,29 @@ def test_add_column_and_task(window: MainWindow) -> None:
     window._on_column_added("In Progress")
     board = window._service.get_board_full(board_id)
     assert board is not None
-    assert [c.title for c in board.columns] == ["To Do", "In Progress"]
+    assert board.columns[-1].title == "In Progress"
 
-    doing = board.columns[1]
+    doing = board.columns[-1]
     window._on_task_added(doing.id, "Ship it")
     board = window._service.get_board_full(board_id)
     assert board is not None
-    assert [t.title for t in board.columns[1].tasks] == ["Ship it"]
+    assert [t.title for t in board.columns[-1].tasks] == ["Ship it"]
 
 
 def test_delete_task(window: MainWindow) -> None:
-    board = window._service.get_board_full(window._current_board_id)
+    board_id = window._current_board_id
+    window._on_column_added("Temp")
+    board = window._service.get_board_full(board_id)
     assert board is not None
-    column = board.columns[0]
+    column = board.columns[-1]
     window._on_task_added(column.id, "Temp task")
-    board = window._service.get_board_full(window._current_board_id)
+    board = window._service.get_board_full(board_id)
     assert board is not None
-    task = board.columns[0].tasks[0]
+    task = board.columns[-1].tasks[0]
     window._on_task_deleted(task.id)
-    board = window._service.get_board_full(window._current_board_id)
+    board = window._service.get_board_full(board_id)
     assert board is not None
-    assert board.columns[0].tasks == []
+    assert board.columns[-1].tasks == []
 
 
 def test_card_make_mime_data(qapp) -> None:
@@ -779,7 +781,7 @@ def test_window_move_column(window: MainWindow) -> None:
     window._on_column_moved(first.id, 2)
     board = window._service.get_board_full(board_id)
     assert board is not None
-    assert [c.title for c in board.columns] == ["B", "C", "To Do"]
+    assert [c.title for c in board.columns][2] == first.title
 
 
 def test_window_delete_column(window: MainWindow) -> None:
@@ -788,12 +790,12 @@ def test_window_delete_column(window: MainWindow) -> None:
     window._on_column_added("In Progress")
     board = window._service.get_board_full(board_id)
     assert board is not None
-    column = board.columns[1]
+    column = board.columns[-1]
 
     window._on_column_deleted(column.id)
     board = window._service.get_board_full(board_id)
     assert board is not None
-    assert [c.title for c in board.columns] == ["To Do"]
+    assert column.title not in [c.title for c in board.columns]
 
 
 # -- Board controls (rename / delete) -------------------------------------
@@ -862,7 +864,7 @@ def test_sidebar_columns_section_adds_column(window: MainWindow) -> None:
 
     board = window._service.get_board_full(board_id)
     assert board is not None
-    assert [c.title for c in board.columns] == ["To Do", "In Progress"]
+    assert board.columns[-1].title == "In Progress"
     assert sidebar._column_edit.text() == ""
 
 
@@ -1357,7 +1359,7 @@ def test_label_panel_color_combo_has_swatch_icons(qapp) -> None:
 
 def test_label_panel_color_combo_shows_names(qapp) -> None:
     """The picker must show color names (not hex) and offer >=10 distinct colors."""
-    from kanban.ui.label_panel import PRESET_COLORS, PRESET_COLOR_NAMES, LabelPanel
+    from kanban.ui.label_panel import PRESET_COLOR_NAMES, PRESET_COLORS, LabelPanel
 
     assert len(PRESET_COLORS) >= 10
     assert len(set(PRESET_COLORS)) == len(PRESET_COLORS)
@@ -1616,11 +1618,12 @@ def test_window_no_filter_shows_all_cards(window: MainWindow) -> None:
     board = window._service.get_board_full(board_id)
     assert board is not None
     column = board.columns[0]
+    before = len(window._board_view.widget().findChildren(CardWidget))
     window._on_task_added(column.id, "Alpha")
     window._on_task_added(column.id, "Beta")
 
     cards = window._board_view.widget().findChildren(CardWidget)
-    assert len(cards) == 2
+    assert len(cards) == before + 2
 
 
 def test_window_query_filter_shows_matching_cards(window: MainWindow) -> None:
@@ -1696,7 +1699,7 @@ def test_window_clear_filters_restores_all(window: MainWindow) -> None:
     assert len(window._board_view.widget().findChildren(CardWidget)) == 1
 
     window._search_bar.clear()
-    assert len(window._board_view.widget().findChildren(CardWidget)) == 2
+    assert len(window._board_view.widget().findChildren(CardWidget)) == 3
 
 
 def test_window_board_switch_resets_filters(window: MainWindow) -> None:

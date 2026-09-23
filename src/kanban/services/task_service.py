@@ -16,6 +16,18 @@ from kanban.models import Board, BoardColumn, Label, Priority, Subtask, Task
 from kanban.models.task import MAX_TITLE_LENGTH
 from kanban.services.database import Database
 
+#: Columns seeded on the starter board shown on first launch.
+DEFAULT_COLUMNS: list[str] = ["To-Do", "In-Progress", "Completed", "Blocked"]
+
+#: Placeholder card shown on the starter board so the UI is never empty.
+PLACEHOLDER_TASK_TITLE = "Your Task"
+PLACEHOLDER_TASK_DESCRIPTION = (
+    "Add an optional description or note for your task. Set subtasks, a priority "
+    "level and add a due date when needed. Create and edit boards, columns, tasks "
+    "and labels that match your workflow. You may archive or delete your tasks "
+    "when complete."
+)
+
 
 class TaskService:
     """High-level CRUD operations for boards, columns, and tasks."""
@@ -30,6 +42,34 @@ class TaskService:
             board = Board(name=name, icon=icon, color=color)
             board.columns.append(BoardColumn(title="To Do", order_idx=0))
             session.add(board)
+            session.flush()
+            return board
+
+    def create_default_board(self, name: str = "My Board") -> Board:
+        """Create the starter board with default columns and a placeholder task.
+
+        Used only when the user has no existing boards (first launch or after
+        deleting the last board) so the app never opens on an empty canvas.
+        """
+        with self._db.session() as session:
+            board = Board(name=name)
+            first_column: BoardColumn | None = None
+            for order_idx, title in enumerate(DEFAULT_COLUMNS):
+                column = BoardColumn(title=title, order_idx=order_idx)
+                board.columns.append(column)
+                if first_column is None:
+                    first_column = column
+            session.add(board)
+            session.flush()
+            assert first_column is not None
+            task = Task(
+                title=PLACEHOLDER_TASK_TITLE,
+                description=PLACEHOLDER_TASK_DESCRIPTION,
+                priority=Priority.MEDIUM,
+                order_idx=0,
+            )
+            first_column.tasks.append(task)
+            session.add(task)
             session.flush()
             return board
 
