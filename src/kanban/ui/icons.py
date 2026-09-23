@@ -39,6 +39,8 @@ DEFAULT_ICON_COLORS: dict[str, str] = {
     "calendar": "#2f6fed",  # blue — due date
     "archive": "#0f9d8f",  # teal — archive
     "restore": "#2e9e5b",  # green — restore
+    "help": "#2f6fed",  # blue — help
+    "info": "#8e44ad",  # purple — about
 }
 
 #: Feather-style icon paths (24x24 viewBox, stroke-based).
@@ -67,6 +69,8 @@ _ICON_PATHS: dict[str, str] = {
     ),
     "archive": "M21 8v13H3V8M1 3h22v5H1zM10 12h4",
     "restore": "M1 4v6h6M3.51 15a9 9 0 1 0 2.13-9.36L1 10",
+    "help": "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01",
+    "info": "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01",
 }
 
 #: Rendered icons cached by (name, color, size) to avoid re-rendering.

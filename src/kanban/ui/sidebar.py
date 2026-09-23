@@ -34,6 +34,8 @@ class Sidebar(QFrame):
     column_added = Signal(str)  # title
     label_added = Signal(str, str)  # name, color
     label_deleted = Signal(int)  # label_id
+    help_requested = Signal()
+    about_requested = Signal()
 
     def __init__(self) -> None:
         super().__init__()
@@ -110,6 +112,32 @@ class Sidebar(QFrame):
         self._label_panel.label_added.connect(self.label_added)
         self._label_panel.label_deleted.connect(self.label_deleted)
         layout.addWidget(self._label_panel, 1)
+
+        bottom_row = QHBoxLayout()
+        bottom_row.setSpacing(6)
+        self._help_button = self._make_small_button("help", "Help", self.help_requested.emit)
+        self._about_button = self._make_small_button("info", "About", self.about_requested.emit)
+        bottom_row.addWidget(self._help_button)
+        bottom_row.addWidget(self._about_button)
+        layout.addLayout(bottom_row)
+
+    @staticmethod
+    def _make_small_button(icon_name: str, text: str, slot: object) -> QPushButton:
+        """Build a compact icon+text button for the sidebar's bottom row.
+
+        Each button is roughly half the width of the full-width label buttons
+        so the two fit side by side in a single row, with a reduced height and
+        smaller padding/font to read as a secondary action.
+        """
+        button = QPushButton(text)
+        button.setIcon(icons.icon(icon_name))
+        button.setAccessibleName(text)
+        button.setToolTip(text)
+        button.setStyleSheet(
+            "QPushButton { padding: 3px 6px; font-size: 11px; }"
+        )
+        button.clicked.connect(slot)
+        return button
 
     def _on_current_changed(self, current: QListWidgetItem | None, _previous: object) -> None:
         """Emit the selected board id when the current item changes."""

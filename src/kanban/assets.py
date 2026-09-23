@@ -24,3 +24,17 @@ def asset_dir() -> Path:
 def asset_path(name: str) -> Path:
     """Return the path of a bundled asset file, e.g. ``logo-icon.svg``."""
     return asset_dir() / name
+
+
+def doc_dir() -> Path:
+    """Return the directory containing the application's bundled documents."""
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass is not None:
+        return Path(meipass) / "docs"
+    # src/kanban/assets.py -> parents[2] is the repository root.
+    return Path(__file__).resolve().parents[2] / "docs"
+
+
+def doc_path(name: str) -> Path:
+    """Return the path of a bundled document, e.g. ``user_manual.md``."""
+    return doc_dir() / name

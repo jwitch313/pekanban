@@ -19,6 +19,9 @@ datas, binaries, hiddenimports = collect_all("PySide6")
 # Bundle the logo assets (window icon, wordmark) into the app folder.
 datas += [("assets", "assets")]
 
+# Bundle the user manual so the Help window can display it in the frozen build.
+datas += [("docs", "docs")]
+
 a = Analysis(
     ["main.py"],
     pathex=[],

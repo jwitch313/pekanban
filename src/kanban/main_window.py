@@ -30,7 +30,9 @@ from kanban.services.undo_redo import (
     MoveTaskCommand,
     UndoRedoService,
 )
+from kanban.ui.about_splash import AboutSplash
 from kanban.ui.board_view import BoardView
+from kanban.ui.help_window import HelpWindow
 from kanban.ui.search_bar import Filters, SearchBar
 from kanban.ui.sidebar import Sidebar
 from kanban.ui.theme import ThemeMode, apply_theme, resolve_theme_mode, title_bar_color
@@ -51,6 +53,8 @@ class MainWindow(QMainWindow):
         self._filters: Filters = {}
         self._resolved_theme: ThemeMode | None = None
         self._viewing_archive = False
+        self._help_window: HelpWindow | None = None
+        self._about_splash: AboutSplash | None = None
 
         self.setWindowTitle("PeKanBan")
         self.resize(1100, 700)
@@ -103,6 +107,8 @@ class MainWindow(QMainWindow):
         self._search_bar.theme_selected.connect(self._on_theme_selected)
         self._search_bar.view_archive_requested.connect(self._on_view_archive_toggled)
         self._search_bar.set_theme_mode(self._settings.theme_mode())
+        self._sidebar.help_requested.connect(self._on_help_requested)
+        self._sidebar.about_requested.connect(self._on_about_requested)
 
         self._setup_shortcuts()
 
@@ -380,6 +386,24 @@ class MainWindow(QMainWindow):
         self._settings.set_theme_mode(mode)
         self._apply_theme(mode)
         self._search_bar.set_theme_mode(mode)
+
+    # -- Help & About -----------------------------------------------------
+    def _on_help_requested(self) -> None:
+        """Show the user manual in a distinct top-level window."""
+        if self._help_window is None:
+            self._help_window = HelpWindow(self)
+        self._help_window.show()
+        self._help_window.raise_()
+        self._help_window.activateWindow()
+
+    def _on_about_requested(self) -> None:
+        """Show the About splash, using the logo that matches the active theme."""
+        mode = self._resolved_theme if self._resolved_theme is not None else ThemeMode.LIGHT
+        if self._about_splash is None:
+            self._about_splash = AboutSplash(mode, self)
+        self._about_splash.show()
+        self._about_splash.raise_()
+        self._about_splash.activateWindow()
 
     # -- Keyboard shortcuts ----------------------------------------------
     def _setup_shortcuts(self) -> None:
