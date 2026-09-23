@@ -1355,6 +1355,22 @@ def test_label_panel_color_combo_has_swatch_icons(qapp) -> None:
         assert panel._color_combo.itemData(i) in PRESET_COLORS
 
 
+def test_label_panel_color_combo_shows_names(qapp) -> None:
+    """The picker must show color names (not hex) and offer >=10 distinct colors."""
+    from kanban.ui.label_panel import PRESET_COLORS, PRESET_COLOR_NAMES, LabelPanel
+
+    assert len(PRESET_COLORS) >= 10
+    assert len(set(PRESET_COLORS)) == len(PRESET_COLORS)
+    assert len(PRESET_COLOR_NAMES) == len(PRESET_COLORS)
+
+    panel = LabelPanel()
+    for i in range(panel._color_combo.count()):
+        text = panel._color_combo.itemText(i)
+        assert text == PRESET_COLOR_NAMES[i]
+        assert not text.startswith("#")
+        assert panel._color_combo.itemData(i) == PRESET_COLORS[i]
+
+
 def test_window_label_crud(window: MainWindow) -> None:
     board_id = window._current_board_id
     assert board_id is not None

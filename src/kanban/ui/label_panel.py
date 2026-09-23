@@ -25,16 +25,32 @@ from PySide6.QtWidgets import (
 
 from kanban.ui import icons
 
-#: Preset label colors offered in the color picker.
+#: Preset label colors offered in the color picker (hex values, used as data).
 PRESET_COLORS: list[str] = [
-    "#e07b39",  # orange
     "#d9534f",  # red
-    "#4a90d9",  # blue
-    "#5cb85c",  # green
-    "#9b59b6",  # purple
+    "#e07b39",  # orange
     "#e0a800",  # amber
+    "#5cb85c",  # green
     "#16a085",  # teal
+    "#4a90d9",  # blue
+    "#5c6bc0",  # indigo
+    "#9b59b6",  # purple
+    "#e91e8c",  # pink
     "#888888",  # gray
+]
+
+#: Human-readable names shown in the picker, aligned with ``PRESET_COLORS``.
+PRESET_COLOR_NAMES: list[str] = [
+    "Red",
+    "Orange",
+    "Amber",
+    "Green",
+    "Teal",
+    "Blue",
+    "Indigo",
+    "Purple",
+    "Pink",
+    "Gray",
 ]
 
 
@@ -70,8 +86,8 @@ class LabelPanel(QFrame):
 
         self._color_combo = QComboBox()
         self._color_combo.setAccessibleName("Label color")
-        for color in PRESET_COLORS:
-            self._color_combo.addItem(self._swatch_icon(color), color, color)
+        for name, color in zip(PRESET_COLOR_NAMES, PRESET_COLORS):
+            self._color_combo.addItem(self._swatch_icon(color), name, color)
         self._color_combo.setStyleSheet(
             "QComboBox { padding: 2px; }"
             "QComboBox QAbstractItemView { background-color: #ffffff; }"
