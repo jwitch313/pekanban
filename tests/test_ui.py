@@ -31,6 +31,16 @@ def test_window_icon_is_set(window: MainWindow) -> None:
     assert not window.windowIcon().isNull()
 
 
+def test_window_icon_switches_with_theme(window: MainWindow) -> None:
+    """The window icon must differ between the light and dark themes."""
+    window._apply_theme("light")
+    light_key = window.windowIcon().cacheKey()
+    window._apply_theme("dark")
+    dark_key = window.windowIcon().cacheKey()
+    assert not window.windowIcon().isNull()
+    assert light_key != dark_key
+
+
 def test_no_new_board_created_on_relaunch(qapp, tmp_path) -> None:
     """A second launch over an existing DB must reuse the board, not add one."""
     from kanban.services.database import create_database

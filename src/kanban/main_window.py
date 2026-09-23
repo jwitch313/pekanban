@@ -53,7 +53,6 @@ class MainWindow(QMainWindow):
         self._viewing_archive = False
 
         self.setWindowTitle("PeKanBan")
-        self.setWindowIcon(QIcon(str(asset_path("logo-icon.svg"))))
         self.resize(1100, 700)
         self._apply_theme(self._settings.theme_mode())
 
@@ -354,7 +353,13 @@ class MainWindow(QMainWindow):
         app = QApplication.instance()
         if app is not None:
             apply_theme(cast("QApplication", app), resolved)
+        self._apply_window_icon(resolved)
         self._apply_title_bar_color()
+
+    def _apply_window_icon(self, resolved: ThemeMode) -> None:
+        """Use the light-grey logo on dark backgrounds and the brown one on light."""
+        name = "logo-icon-dark.svg" if resolved is ThemeMode.DARK else "logo-icon.svg"
+        self.setWindowIcon(QIcon(str(asset_path(name))))
 
     def _apply_title_bar_color(self) -> None:
         """Recolor the native Windows title bar to match the active theme.
