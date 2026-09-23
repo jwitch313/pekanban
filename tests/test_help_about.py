@@ -136,6 +136,50 @@ def test_about_splash_logo_renders(qapp: QApplication) -> None:
         splash.close()
 
 
+def _logo_stroke_color(splash: AboutSplash) -> tuple[int, int, int]:
+    """Return the dominant (non-transparent) stroke color of the splash logo."""
+    from collections import Counter
+
+    from PySide6.QtGui import QImage
+    from PySide6.QtWidgets import QLabel
+
+    for label in splash.findChildren(QLabel):
+        pixmap = label.pixmap()
+        if pixmap is None:
+            continue
+        image = pixmap.toImage().convertToFormat(QImage.Format.Format_ARGB32)
+        counts: Counter[tuple[int, int, int]] = Counter()
+        for y in range(image.height()):
+            for x in range(image.width()):
+                col = image.pixelColor(x, y)
+                if col.alpha() > 0:
+                    counts[(col.red(), col.green(), col.blue())] += 1
+        if counts:
+            return counts.most_common(1)[0][0]
+    raise AssertionError("splash has no logo pixmap")
+
+
+def test_about_splash_rethemes_when_theme_changes(qapp: QApplication) -> None:
+    """A cached splash must swap to the dark logo/links when re-themed to dark.
+
+    Regression: the splash instance is created once and cached, so a theme
+    change made after first opening it (e.g. switching to dark mode) used to
+    leave the light logo and light title-bar color in place.
+    """
+    splash = AboutSplash(ThemeMode.LIGHT)
+    light_color = _logo_stroke_color(splash)
+    # Light theme uses the brown pecan outline.
+    assert light_color[0] > light_color[2]  # reddish-brown, not grey
+
+    splash.set_theme_mode(ThemeMode.DARK)
+    dark_color = _logo_stroke_color(splash)
+    # Dark theme uses the light-grey pecan outline (r ~= g ~= b, all high).
+    assert min(dark_color) > 150
+    assert max(dark_color) - min(dark_color) < 30
+    assert dark_color != light_color
+    splash.close()
+
+
 def test_about_splash_window_flags(qapp: QApplication) -> None:
     """Only the close button is kept; minimize and maximize are removed."""
     from PySide6.QtCore import Qt

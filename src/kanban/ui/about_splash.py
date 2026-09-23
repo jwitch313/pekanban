@@ -93,10 +93,9 @@ class AboutSplash(QWidget):
         layout.setSpacing(12)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        logo = QLabel()
-        logo.setPixmap(_render_logo(mode))
-        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(logo, 0, Qt.AlignmentFlag.AlignCenter)
+        self._logo_label = QLabel()
+        self._logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self._logo_label, 0, Qt.AlignmentFlag.AlignCenter)
 
         title = QLabel("PeKanBan")
         title.setObjectName("aboutTitle")
@@ -110,18 +109,32 @@ class AboutSplash(QWidget):
 
         layout.addSpacing(8)
 
-        credits = QLabel()
-        credits.setObjectName("aboutCredits")
-        credits.setOpenExternalLinks(True)
-        credits.setTextFormat(Qt.TextFormat.RichText)
-        credits.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        credits.setWordWrap(False)
-        credits.setText(_credit_html(_link_color(mode)))
-        layout.addWidget(credits)
+        self._credits_label = QLabel()
+        self._credits_label.setObjectName("aboutCredits")
+        self._credits_label.setOpenExternalLinks(True)
+        self._credits_label.setTextFormat(Qt.TextFormat.RichText)
+        self._credits_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._credits_label.setWordWrap(False)
+        layout.addWidget(self._credits_label)
+
+        self.set_theme_mode(mode)
 
         # Size the window to fit its content so no line of text wraps.
         self.adjustSize()
         self.setFixedSize(self.size())
+
+    def set_theme_mode(self, mode: ThemeMode) -> None:
+        """Re-apply the given theme: logo, link colors, and title-bar color.
+
+        Called on construction and again each time the splash is shown, so the
+        window always matches the app's active theme even if the theme changed
+        after the splash was first created (the splash instance is cached).
+        """
+        self._mode = mode
+        self._logo_label.setPixmap(_render_logo(mode))
+        self._credits_label.setText(_credit_html(_link_color(mode)))
+        if self.isVisible():
+            set_title_bar_color(int(self.winId()), title_bar_color(mode))
 
     def showEvent(self, event: QShowEvent) -> None:  # noqa: N802 - Qt naming
         """Recolor the native Windows title bar to match the active theme."""

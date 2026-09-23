@@ -401,6 +401,10 @@ class MainWindow(QMainWindow):
         mode = self._resolved_theme if self._resolved_theme is not None else ThemeMode.LIGHT
         if self._about_splash is None:
             self._about_splash = AboutSplash(mode, self)
+        else:
+            # The splash is cached; re-theme it so a theme change made after it
+            # was first created (e.g. switching to dark mode) is reflected.
+            self._about_splash.set_theme_mode(mode)
         self._about_splash.show()
         self._about_splash.raise_()
         self._about_splash.activateWindow()
