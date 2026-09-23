@@ -18,7 +18,7 @@ Examples:
 
 ### Library Usage
 - Do not install packages, libraries or modules that are part of the Python Standard Library, instead they should be imported as needed.
-- Do **not** install packages, libraries or modules that do not have a positive reputation, regular development actitivy, a secure history or is less than 90 days old.
+- Do **not** install packages, libraries or modules that do not have a positive reputation, regular development activity, a secure history or is less than 90 days old.
 - Import modules at the top of a file and group imports in the following order: standard libraries, third-party libraries and local project imports.
 - When importing modules for GUI tasks check `~/.opensrc/**` for related codebase and library reference documentation to help with planning and logic. If the module or library is not available in opensrc then pause and prompt the user to install the codebase and library reference documentation to help with planning and logic.
 - When importing modules for database tasks check `~/.opensrc/**` for related codebase and library reference documentation to help with planning and logic. If the module or library is not available in opensrc then pause and prompt the user to install the codebase and library reference documentation to help with planning and logic.
