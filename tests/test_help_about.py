@@ -136,6 +136,51 @@ def test_about_splash_logo_renders(qapp: QApplication) -> None:
         splash.close()
 
 
+def test_about_splash_window_flags(qapp: QApplication) -> None:
+    """Only the close button is kept; minimize and maximize are removed."""
+    from PySide6.QtCore import Qt
+
+    splash = AboutSplash(ThemeMode.LIGHT)
+    flags = splash.windowFlags()
+    assert flags & Qt.WindowType.WindowCloseButtonHint
+    assert not (flags & Qt.WindowType.WindowMinimizeButtonHint)
+    assert not (flags & Qt.WindowType.WindowMaximizeButtonHint)
+    splash.close()
+
+
+def test_about_splash_link_text_is_scoped(qapp: QApplication) -> None:
+    """Only the intended words are hyperlinks, not the whole line."""
+    from PySide6.QtWidgets import QLabel
+
+    splash = AboutSplash(ThemeMode.LIGHT)
+    credits = splash.findChild(QLabel, "aboutCredits")
+    html = credits.text()
+    # The author name, handle, and phrase are the link text...
+    assert 'href="https://JamesWitcher.com"' in html
+    assert 'href="https://www.instagram.com/jwitch313"' in html
+    assert 'href="https://www.paypal.com/paypalme/JamesWitcher"' in html
+    assert ">James Witcher</a>" in html
+    assert ">@jWitch313</a>" in html
+    assert ">buy me a shot</a>" in html
+    # ...but the surrounding words are plain text, not part of the link.
+    assert "App by James Witcher</a>" not in html
+    assert "Instagram @jWitch313</a>" not in html
+    assert "value, buy me a shot</a>" not in html
+    splash.close()
+
+
+def test_about_splash_fits_content_without_wrap(qapp: QApplication) -> None:
+    """The credits do not wrap and the window is wide enough to show them."""
+    from PySide6.QtWidgets import QLabel
+
+    splash = AboutSplash(ThemeMode.LIGHT)
+    credits = splash.findChild(QLabel, "aboutCredits")
+    assert not credits.wordWrap()
+    inner_width = splash.width() - 48  # 24px margins on each side
+    assert credits.sizeHint().width() <= inner_width
+    splash.close()
+
+
 # -- Sidebar buttons & signals -------------------------------------------
 def test_sidebar_has_help_and_about_buttons(qapp: QApplication) -> None:
     sidebar = Sidebar()
