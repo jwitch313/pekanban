@@ -116,32 +116,68 @@ class BoardView(QScrollArea):
                 ColumnWidget(column.id, column.title, tasks, index, board_labels=board_labels)
             )
 
+    #: Maximum number of archived cards per column.
+    _ARCHIVE_COLUMN_SIZE = 10
+
     def load_archived(
         self,
         tasks: list[Task],
         board_labels: list[LabelSpec] | None = None,
     ) -> None:
-        """Render archived tasks in a single full-width widget.
+        """Render archived tasks in columns of at most 10 cards each.
 
-        The archived view replaces the normal columns: one large widget fills
-        the display area and lists each archived task as a full-width card.
+        The archived view replaces the normal board columns. Tasks are split
+        into groups of :attr:`_ARCHIVE_COLUMN_SIZE`; each group becomes a
+        column widget with a title ("Archived", "Archived 2", …).
         """
         self.clear_columns()
         board_labels = list(board_labels or [])
 
-        container = QWidget()
-        container.setObjectName("archivedView")
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(12)
-
         if not tasks:
+            container = QWidget()
+            container.setObjectName("archivedView")
+            layout = QVBoxLayout(container)
+            layout.setContentsMargins(12, 12, 12, 12)
             placeholder = QLabel("No archived tasks.")
             placeholder.setObjectName("archivedEmpty")
             layout.addWidget(placeholder)
             layout.addStretch(1)
             self._column_layout.insertWidget(self._column_layout.count() - 1, container)
             return
+
+        # Split tasks into chunks of _ARCHIVE_COLUMN_SIZE.
+        chunks = [
+            tasks[i : i + self._ARCHIVE_COLUMN_SIZE]
+            for i in range(0, len(tasks), self._ARCHIVE_COLUMN_SIZE)
+        ]
+
+        for chunk_index, chunk in enumerate(chunks):
+            title = "Archived" if chunk_index == 0 else f"Archived {chunk_index + 1}"
+            column = self._make_archive_column(title, chunk, board_labels)
+            self._column_layout.insertWidget(self._column_layout.count() - 1, column)
+
+    def _make_archive_column(
+        self,
+        title: str,
+        tasks: list[Task],
+        board_labels: list[LabelSpec],
+    ) -> QWidget:
+        """Build a single archive column widget holding up to 10 cards."""
+        from kanban.ui.column_widget import make_drop_shadow
+
+        column = QFrame()
+        column.setObjectName("column")
+        column.setFrameShape(QFrame.Shape.StyledPanel)
+        column._shadow = make_drop_shadow()  # type: ignore[attr-defined]
+        column.setGraphicsEffect(column._shadow)  # type: ignore[attr-defined]
+
+        layout = QVBoxLayout(column)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(8)
+
+        title_label = QLabel(title)
+        title_label.setObjectName("columnTitle")
+        layout.addWidget(title_label)
 
         for task in tasks:
             labels = [(label.id, label.name, label.color) for label in task.labels]
@@ -170,8 +206,9 @@ class BoardView(QScrollArea):
             card.description_changed.connect(self.description_changed)
             card.title_changed.connect(self.title_changed)
             layout.addWidget(card)
+
         layout.addStretch(1)
-        self._column_layout.insertWidget(self._column_layout.count() - 1, container)
+        return column
 
     def focus_first_task_input(self) -> bool:
         """Focus the first column's add-task field. Returns True if one exists."""

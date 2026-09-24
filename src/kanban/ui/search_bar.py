@@ -133,6 +133,7 @@ class SearchBar(QFrame):
         self._archive_button.setIcon(icons.icon("archive"))
         self._archive_button.setAccessibleName("View archive")
         self._archive_button.setToolTip("View archived tasks")
+        self._archive_button.setCheckable(True)
         self._archive_button.clicked.connect(self.view_archive_requested.emit)
 
         # Push the archive + theme buttons to the far right; the search box and
@@ -144,11 +145,19 @@ class SearchBar(QFrame):
         layout.addWidget(self._theme_button)
 
     def set_viewing_archive(self, viewing: bool) -> None:
-        """Reflect whether the archive view is active on the archive button."""
+        """Reflect whether the archive view is active on the archive button.
+
+        When active the button appears pressed (checked) with a highlighted
+        background and a brighter icon so the user can see at a glance that
+        they are in archive mode.
+        """
+        self._archive_button.setChecked(viewing)
         if viewing:
             self._archive_button.setToolTip("Back to board")
+            self._archive_button.setIcon(icons.icon("archive", color="#ffffff", size=16))
         else:
             self._archive_button.setToolTip("View archived tasks")
+            self._archive_button.setIcon(icons.icon("archive"))
 
     def _bound_query_width(self) -> None:
         """Clamp the search box to a readable width (24-64 characters).

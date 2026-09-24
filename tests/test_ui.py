@@ -10,6 +10,7 @@ from datetime import date, timedelta
 
 from PySide6.QtCore import QMimeData, QPoint, Qt
 from PySide6.QtGui import QDropEvent
+from PySide6.QtWidgets import QFrame
 
 from kanban.main_window import MainWindow
 from kanban.models import Priority
@@ -1103,6 +1104,114 @@ def test_board_view_load_archived_empty(qapp) -> None:
     view.load_archived([])
     assert view.widget().findChildren(CardWidget) == []
     assert view.widget().findChild(QLabel, "archivedEmpty") is not None
+
+
+def test_board_view_archive_splits_into_columns_of_10(qapp) -> None:
+    """Archived tasks are split into columns holding at most 10 cards each."""
+    from kanban.models import Task
+
+    tasks = [
+        Task(id=i, title=f"Task {i}", priority=Priority.LOW, order_idx=i)
+        for i in range(25)
+    ]
+    for t in tasks:
+        t.archived = True
+
+    view = BoardView()
+    view.load_archived(tasks)
+
+    # 25 tasks / 10 per column = 3 columns (10 + 10 + 5)
+    columns = [w for w in view.widget().findChildren(QFrame) if w.objectName() == "column"]
+    assert len(columns) == 3
+
+    # Each column has at most 10 cards.
+    for col in columns:
+        cards = col.findChildren(CardWidget)
+        assert len(cards) <= 10
+
+    # Total cards across all columns equals the total task count.
+    total_cards = sum(len(col.findChildren(CardWidget)) for col in columns)
+    assert total_cards == 25
+
+
+def test_board_view_archive_column_titles(qapp) -> None:
+    """Archive columns are titled 'Archived', 'Archived 2', 'Archived 3', …"""
+    from PySide6.QtWidgets import QLabel
+
+    from kanban.models import Task
+
+    tasks = [
+        Task(id=i, title=f"T{i}", priority=Priority.LOW, order_idx=i)
+        for i in range(15)
+    ]
+    for t in tasks:
+        t.archived = True
+
+    view = BoardView()
+    view.load_archived(tasks)
+
+    columns = [w for w in view.widget().findChildren(QFrame) if w.objectName() == "column"]
+    assert len(columns) == 2
+
+    titles = []
+    for col in columns:
+        label = col.findChild(QLabel, "columnTitle")
+        assert label is not None
+        titles.append(label.text())
+
+    assert titles == ["Archived", "Archived 2"]
+
+
+def test_board_view_archive_single_column_when_under_10(qapp) -> None:
+    """Fewer than 10 archived tasks produce a single column."""
+    from kanban.models import Task
+
+    tasks = [
+        Task(id=i, title=f"T{i}", priority=Priority.LOW, order_idx=i)
+        for i in range(3)
+    ]
+    for t in tasks:
+        t.archived = True
+
+    view = BoardView()
+    view.load_archived(tasks)
+
+    columns = [w for w in view.widget().findChildren(QFrame) if w.objectName() == "column"]
+    assert len(columns) == 1
+    cards = columns[0].findChildren(CardWidget)
+    assert len(cards) == 3
+
+
+def test_archive_button_is_checkable(qapp) -> None:
+    """The 'View archive' button is checkable to reflect active state."""
+    from PySide6.QtWidgets import QPushButton
+
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    button = bar.findChild(QPushButton, "viewArchiveButton")
+    assert button is not None
+    assert button.isCheckable()
+    assert not button.isChecked()
+
+
+def test_archive_button_reflects_viewing_state(qapp) -> None:
+    """set_viewing_archive toggles the button's checked state and icon."""
+    from PySide6.QtWidgets import QPushButton
+
+    from kanban.ui.search_bar import SearchBar
+
+    bar = SearchBar()
+    button = bar.findChild(QPushButton, "viewArchiveButton")
+    assert button is not None
+
+    bar.set_viewing_archive(True)
+    assert button.isChecked()
+    assert button.toolTip() == "Back to board"
+
+    bar.set_viewing_archive(False)
+    assert not button.isChecked()
+    assert button.toolTip() == "View archived tasks"
 
 
 def test_board_view_forwards_archive_signals(qapp) -> None:

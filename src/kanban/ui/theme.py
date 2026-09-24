@@ -92,6 +92,12 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 #priorityBadge { font-weight: bold; }
 #dueDate { color: #5a6068; }
 #subtaskHeader { color: #5a6068; font-weight: bold; font-size: 11px; }
+#viewArchiveButton:checked {
+    background-color: #0f9d8f;
+    border-color: #0b7d72;
+    color: #ffffff;
+}
+#viewArchiveButton:checked:hover { background-color: #0b8a7e; }
 """
 
 DARK_QSS = """
@@ -165,6 +171,12 @@ QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 #priorityBadge { font-weight: bold; }
 #dueDate { color: #9aa0a8; }
 #subtaskHeader { color: #9aa0a8; font-weight: bold; font-size: 11px; }
+#viewArchiveButton:checked {
+    background-color: #0f9d8f;
+    border-color: #0b7d72;
+    color: #ffffff;
+}
+#viewArchiveButton:checked:hover { background-color: #0b8a7e; }
 """
 
 
