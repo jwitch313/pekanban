@@ -1,6 +1,6 @@
 [project]
 name = "kanban"
-version = "0.1.0"
+version = "1.0.0"
 description = "A feature-rich, single-user Kanban task management application for Windows"
 readme = "README.md"
 requires-python = ">=3.9"
