@@ -24,7 +24,7 @@ When you launch PeKanBan for the first time:
    shown in the main area.
 
 The application remembers your data between sessions. Your data lives in a
-hidden folder in your user profile (see [Data Storage & Backup](#10-data-storage--backup)).
+hidden folder in your user profile (see [Data Storage & Backup](#12-data-storage--backup)).
 
 ### Layout overview
 
@@ -90,7 +90,36 @@ Each card represents a single task.
 
 ---
 
-## 5. Priority & Due Dates
+## 5. Archiving Tasks
+
+Archiving is a non-destructive way to move a task off the board without
+deleting it.
+
+- **Archive a task** — click the teal **archive box** icon button on the card
+  (immediately to the left of the red **trash** icon). The task disappears
+  from the board and is stored in the board's archive.
+- **View archived tasks** — click the teal **archive box** icon button on the
+  right side of the search & filter bar. The board columns are replaced by the
+  archive view, and the button appears pressed with a highlighted background
+  and a white icon so you can see at a glance that you are in archive mode.
+  Click it again (tooltip: *Back to board*) to return to the board.
+- **Archive layout** — archived cards are shown in columns of up to **10**
+  cards each, titled **Archived**, **Archived 2**, and so on. Additional
+  columns are created automatically as the archive grows. If the board has no
+  archived tasks, the view shows *No archived tasks.*
+- **Restore a task** — on an archived card, the archive button is replaced by
+  a green **circular arrow** (restore) icon button. Click it to put the task
+  back on the board.
+- **Delete a task** — the red **trash** icon button is still available on
+  archived cards. Deleting is permanent and cannot be undone.
+
+> **Note:** Archived cards cannot be dragged or moved while in the archive
+> view. Switching boards (or creating/deleting a board) automatically returns
+> you to the normal board view.
+
+---
+
+## 6. Priority & Due Dates
 
 Every task has a **priority** shown as a colored badge on the card:
 
@@ -113,7 +142,7 @@ Tasks can also carry a **due date**, shown as `Due YYYY-MM-DD` on the card.
 
 ---
 
-## 6. Labels
+## 7. Labels
 
 Labels are colored tags scoped to the current board. They are managed in the
 **Labels** section of the sidebar and applied to cards.
@@ -134,7 +163,7 @@ Labels are colored tags scoped to the current board. They are managed in the
 
 ---
 
-## 7. Sub-tasks
+## 8. Sub-tasks
 
 Each card can have a list of sub-tasks for breaking work into smaller steps.
 
@@ -147,7 +176,7 @@ Each card can have a list of sub-tasks for breaking work into smaller steps.
 
 ---
 
-## 8. Search & Filter
+## 9. Search & Filter
 
 The bar at the top of the board lets you narrow which cards are visible. Any
 combination of the following can be active at once:
@@ -167,16 +196,16 @@ combination of the following can be active at once:
   pressed with a highlighted background.
 - **Theme** — click the blue **monitor** icon button (far right of the bar) to
   choose **System**, **Light**, or **Dark** (see
-  [Appearance](#10-appearance)).
+  [Appearance](#11-appearance)).
 - Filters reset automatically whenever you switch boards.
 
 ---
 
-## 9. Keyboard Shortcuts
+## 10. Keyboard Shortcuts
 
 | Shortcut | Action |
 | --- | --- |
-| **Ctrl+N** | Focus the *Add a column…* field. |
+| **Ctrl+N** | Focus the sidebar's *New column…* field. |
 | **Ctrl+T** | Focus the first column's *Add a task…* field. |
 | **Esc** | Clear the currently focused inline edit field. |
 | **Ctrl+Z** | Undo the most recent task action (add / move / delete). |
@@ -184,7 +213,7 @@ combination of the following can be active at once:
 
 ---
 
-## 10. Appearance (Dark Mode)
+## 11. Appearance (Dark Mode)
 
 PeKanBan can follow your **Windows system theme** or use a fixed appearance.
 Use the **Theme** button (blue **monitor** icon) at the right end of the
@@ -200,7 +229,7 @@ The choice is remembered between sessions.
 
 ---
 
-## 11. Data Storage & Backup
+## 12. Data Storage & Backup
 
 All of your data is stored locally in your user profile, in a hidden folder:
 
@@ -225,7 +254,7 @@ restore, close PeKanBan and copy the folder back into place.
 
 ---
 
-## 12. Building the Windows Executable
+## 13. Building the Windows Executable
 
 If you are building PeKanBan from source, the standalone Windows executable is
 produced with [PyInstaller](https://pyinstaller.org/). See the
@@ -246,7 +275,7 @@ The build produces a one-directory layout under `dist/PeKanBan/` containing
 
 ---
 
-## 13. License
+## 14. License
 
 PeKanBan is free and open-source software, licensed under the **GNU General
 Public License v3 (GPLv3)**. You are free to use, study, modify, and share the
