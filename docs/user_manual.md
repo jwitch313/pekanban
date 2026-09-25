@@ -15,13 +15,9 @@ required.
 When you launch PeKanBan for the first time:
 
 1. The main window opens at a default size (1100 × 700).
-2. A starter board named **My Board** is created automatically with four
-   columns: **To Do**, **In Progress**, **Completed**, and **Blocked**.
-3. The **To Do** column contains a placeholder card titled **Your Task** with
-   a short description explaining the basics of the app. It is there so the
-   board is never empty — feel free to edit or delete it.
-4. The board appears in the **Boards** list on the left, and its columns are
-   shown in the main area.
+2. A starter board named **My Board** is created automatically with four columns: **To Do**, **In Progress**, **Completed**, and **Blocked**.
+3. The **To Do** column contains a placeholder card titled **Your Task** with a short description explaining the basics of the app. It is there so the board is never empty — feel free to edit or delete it.
+4. The board appears in the **Boards** list on the left, and its columns are shown in the main area.
 
 The application remembers your data between sessions. Your data lives in a
 hidden folder in your user profile (see [Data Storage & Backup](#12-data-storage--backup)).
@@ -46,16 +42,10 @@ The window is divided into three regions:
 Boards are the top-level containers. They are managed from the **Boards**
 section of the sidebar.
 
-- **Switch board** — click a board name in the list. The main area reloads with
-  that board's columns, and any active filters are cleared.
-- **Create board** — type a name in the *New board…* field and press **Enter**
-  or click the green **plus** icon button. The new board is created and
-  selected immediately.
-- **Rename board** — double-click a board name (or click the blue **pencil**
-  icon button) to edit it inline, then press **Enter** to commit.
-- **Delete board** — select a board and click the red **trash** icon button.
-  If you delete the board you are currently viewing, PeKanBan switches to
-  another board (or recreates a starter board if none remain).
+- **Switch board** — click a board name in the list. The main area reloads with that board's columns, and any active filters are cleared.
+- **Create board** — type a name in the *New board…* field and press **Enter** or click the green **plus** icon button. The new board is created and selected immediately.
+- **Rename board** — double-click a board name (or click the blue **pencil** icon button) to edit it inline, then press **Enter** to commit.
+- **Delete board** — select a board and click the red **trash** icon button. If you delete the board you are currently viewing, PeKanBan switches to another board (or recreates a starter board if none remain).
 
 > **Note:** Deleting a board removes its columns, tasks, labels, and sub-tasks.
 
@@ -66,15 +56,10 @@ section of the sidebar.
 Columns are the vertical lanes within a board (for example *To Do*, *Doing*,
 *Done*).
 
-- **Add column** — type a title in the *New column…* field in the **Columns**
-  section of the sidebar and press **Enter**, or click the green **plus** icon
-  button next to the field.
-- **Rename column** — double-click the column title to edit it inline, then
-  press **Enter**.
-- **Move column** — use the teal **left arrow** and **right arrow** icon
-  buttons in the column header to reorder it relative to its neighbors.
-- **Delete column** — click the red **trash** icon button in the column
-  header. This removes the column and all of its tasks.
+- **Add column** — type a title in the *New column…* field in the **Columns** section of the sidebar and press **Enter**, or click the green **plus** icon button next to the field.
+- **Rename column** — double-click the column title to edit it inline, then press **Enter**.
+- **Move column** — use the teal **left arrow** and **right arrow** icon buttons in the column header to reorder it relative to its neighbors.
+- **Delete column** — click the red **trash** icon button in the column header. This removes the column and all of its tasks.
 
 ---
 
@@ -82,10 +67,8 @@ Columns are the vertical lanes within a board (for example *To Do*, *Doing*,
 
 Each card represents a single task.
 
-- **Add task** — type a title in the *Add a task…* field at the bottom of a
-  column and press **Enter** or click the green **plus** icon button.
-- **Move task** — **drag and drop** a card into another column (or to a new
-  position within the same column). Drop it where you want it to land.
+- **Add task** — type a title in the *Add a task…* field at the bottom of a column and press **Enter** or click the green **plus** icon button.
+- **Move task** — **drag and drop** a card into another column (or to a new position within the same column). Drop it where you want it to land.
 - **Delete task** — click the red **trash** icon button on the card.
 
 ---
@@ -95,23 +78,11 @@ Each card represents a single task.
 Archiving is a non-destructive way to move a task off the board without
 deleting it.
 
-- **Archive a task** — click the teal **archive box** icon button on the card
-  (immediately to the left of the red **trash** icon). The task disappears
-  from the board and is stored in the board's archive.
-- **View archived tasks** — click the teal **archive box** icon button on the
-  right side of the search & filter bar. The board columns are replaced by the
-  archive view, and the button appears pressed with a highlighted background
-  and a white icon so you can see at a glance that you are in archive mode.
-  Click it again (tooltip: *Back to board*) to return to the board.
-- **Archive layout** — archived cards are shown in columns of up to **10**
-  cards each, titled **Archived**, **Archived 2**, and so on. Additional
-  columns are created automatically as the archive grows. If the board has no
-  archived tasks, the view shows *No archived tasks.*
-- **Restore a task** — on an archived card, the archive button is replaced by
-  a green **circular arrow** (restore) icon button. Click it to put the task
-  back on the board.
-- **Delete a task** — the red **trash** icon button is still available on
-  archived cards. Deleting is permanent and cannot be undone.
+- **Archive a task** — click the teal **archive box** icon button on the card (immediately to the left of the red **trash** icon). The task disappears from the board and is stored in the board's archive.
+- **View archived tasks** — click the teal **archive box** icon button on the right side of the search & filter bar. The board columns are replaced by the archive view, and the button appears pressed with a highlighted background and a white icon so you can see at a glance that you are in archive mode. Click it again (tooltip: *Back to board*) to return to the board.
+- **Archive layout** — archived cards are shown in columns of up to **10** cards each, titled **Archived**, **Archived 2**, and so on. Additional columns are created automatically as the archive grows. If the board has no archived tasks, the view shows *No archived tasks.*
+- **Restore a task** — on an archived card, the archive button is replaced by a green **circular arrow** (restore) icon button. Click it to put the task back on the board.
+- **Delete a task** — the red **trash** icon button is still available on archived cards. Deleting is permanent and cannot be undone.
 
 > **Note:** Archived cards cannot be dragged or moved while in the archive
 > view. Switching boards (or creating/deleting a board) automatically returns
@@ -132,13 +103,9 @@ Every task has a **priority** shown as a colored badge on the card:
 
 Tasks can also carry a **due date**, shown as `Due YYYY-MM-DD` on the card.
 
-- **Overdue highlighting** — if a task's due date is in the past, the due-date
-  label is shown in **bold red** so it stands out.
-
-- **Change priority** — click the orange **flag** icon button on the card and
-  choose a priority from the menu.
-- **Set due date** — click the blue **calendar** icon button on the card to
-  open the date picker, or clear the due date from the same popup.
+- **Overdue highlighting** — if a task's due date is in the past, the due-date label is shown in **bold red** so it stands out.
+- **Change priority** — click the orange **flag** icon button on the card and choose a priority from the menu.
+- **Set due date** — click the blue **calendar** icon button on the card to open the date picker, or clear the due date from the same popup.
 
 ---
 
@@ -149,16 +116,12 @@ Labels are colored tags scoped to the current board. They are managed in the
 
 ### Managing labels (sidebar)
 
-- **Create label** — type a name in the *New label…* field, pick a color from
-  the color dropdown, and click the green **plus** icon button.
-- **Delete label** — select a label in the list and click the red **trash**
-  icon button (Delete label).
+- **Create label** — type a name in the *New label…* field, pick a color from the color dropdown, and click the green **plus** icon button.
+- **Delete label** — select a label in the list and click the red **trash** icon button (Delete label).
 
 ### Applying labels to a card
 
-- **Assign label** — click the purple **tag** icon button on a card to open a
-  menu of the board's labels that are not yet applied, then choose one. The
-  label appears as a colored **chip** on the card.
+- **Assign label** — click the purple **tag** icon button on a card to open a menu of the board's labels that are not yet applied, then choose one. The label appears as a colored **chip** on the card.
 - **Remove label** — click a label chip on the card to remove it.
 
 ---
@@ -167,12 +130,9 @@ Labels are colored tags scoped to the current board. They are managed in the
 
 Each card can have a list of sub-tasks for breaking work into smaller steps.
 
-- **Add sub-task** — type a title in the *Add subtask…* field on the card and
-  press **Enter** or click the green **plus** icon button.
-- **Toggle complete** — check or uncheck a sub-task's checkbox to mark it done
-  or not done.
-- **Delete sub-task** — click the red **trash** icon button next to a
-  sub-task.
+- **Add sub-task** — type a title in the *Add subtask…* field on the card and press **Enter** or click the green **plus** icon button.
+- **Toggle complete** — check or uncheck a sub-task's checkbox to mark it done or not done.
+- **Delete sub-task** — click the red **trash** icon button next to a sub-task.
 
 ---
 
@@ -185,18 +145,10 @@ combination of the following can be active at once:
 - **Priority** — choose a specific priority (or *Any priority*).
 - **Column** — choose a specific column (or *Any column*).
 - **Label** — choose a specific label (or *Any label*).
-- **Due date range** — type a date (`yyyy-MM-dd`) in the *from* and/or *until*
-  field, or click the blue **calendar** icon button next to a field to pick a
-  date from a calendar popup. A field only filters while it holds a valid
-  date.
-- **Clear filters** — click the **Clear** button (slate **X** icon) to reset
-  every filter and show all cards.
-- **View archive** — click the teal **archive box** icon button (right side of
-  the bar) to toggle the archived-tasks view. While active, the button appears
-  pressed with a highlighted background.
-- **Theme** — click the blue **monitor** icon button (far right of the bar) to
-  choose **System**, **Light**, or **Dark** (see
-  [Appearance](#11-appearance)).
+- **Due date range** — type a date (`yyyy-MM-dd`) in the *from* and/or *until* field, or click the blue **calendar** icon button next to a field to pick a date from a calendar popup. A field only filters while it holds a valid date.
+- **Clear filters** — click the **Clear** button (slate **X** icon) to reset every filter and show all cards.
+- **View archive** — click the teal **archive box** icon button (right side of the bar) to toggle the archived-tasks view. While active, the button appears pressed with a highlighted background.
+- **Theme** — click the blue **monitor** icon button (far right of the bar) to choose **System**, **Light**, or **Dark** (see [Appearance](#11-appearance)).
 - Filters reset automatically whenever you switch boards.
 
 ---
@@ -219,9 +171,7 @@ PeKanBan can follow your **Windows system theme** or use a fixed appearance.
 Use the **Theme** button (blue **monitor** icon) at the right end of the
 search & filter bar to choose:
 
-- **System** (blue **monitor** icon) — follow the Windows theme. If Windows is
-  set to **Light**, PeKanBan uses a light appearance; if **Dark**, a dark
-  appearance.
+- **System** (blue **monitor** icon) — follow the Windows theme. If Windows is set to **Light**, PeKanBan uses a light appearance; if **Dark**, a dark appearance.
 - **Light** (amber **sun** icon) — always use the light appearance.
 - **Dark** (indigo **moon** icon) — always use the dark appearance.
 
