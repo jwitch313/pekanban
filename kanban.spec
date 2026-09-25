@@ -49,6 +49,7 @@ exe = EXE(
     upx=False,
     console=False,  # windowed app — no console window
     disable_windowed_traceback=False,
+    icon="assets/PeKanBan-icon.ico",  # custom app icon for the .exe
 )
 
 coll = COLLECT(
