@@ -15,8 +15,13 @@ required.
 When you launch PeKanBan for the first time:
 
 1. The main window opens at a default size (1100 × 700).
-2. A starter board named **My Board** is created automatically.
-3. The board appears in the **Boards** list on the left, and its columns are shown in the main area.
+2. A starter board named **My Board** is created automatically with four
+   columns: **To Do**, **In Progress**, **Completed**, and **Blocked**.
+3. The **To Do** column contains a placeholder card titled **Your Task** with
+   a short description explaining the basics of the app. It is there so the
+   board is never empty — feel free to edit or delete it.
+4. The board appears in the **Boards** list on the left, and its columns are
+   shown in the main area.
 
 The application remembers your data between sessions. Your data lives in a
 hidden folder in your user profile (see [Data Storage & Backup](#10-data-storage--backup)).
@@ -31,6 +36,9 @@ The window is divided into three regions:
 | **Search & filter bar** | Top of the main area | Filter the visible cards by text, priority, column, label, or due date. |
 | **Board view** | Main area | The columns and their task cards. |
 
+> **Note:** Deleting a board, column, label, or sub-task is **permanent** and
+> cannot be undone.
+
 ---
 
 ## 2. Boards
@@ -41,12 +49,13 @@ section of the sidebar.
 - **Switch board** — click a board name in the list. The main area reloads with
   that board's columns, and any active filters are cleared.
 - **Create board** — type a name in the *New board…* field and press **Enter**
-  or click **+**. The new board is created and selected immediately.
-- **Rename board** — double-click a board name (or click the **✎** button) to
-  edit it inline, then press **Enter** to commit.
-- **Delete board** — select a board and click the **✕** button. If you delete
-  the board you are currently viewing, PeKanBan switches to another board (or
-  recreates a starter board if none remain).
+  or click the green **plus** icon button. The new board is created and
+  selected immediately.
+- **Rename board** — double-click a board name (or click the blue **pencil**
+  icon button) to edit it inline, then press **Enter** to commit.
+- **Delete board** — select a board and click the red **trash** icon button.
+  If you delete the board you are currently viewing, PeKanBan switches to
+  another board (or recreates a starter board if none remain).
 
 > **Note:** Deleting a board removes its columns, tasks, labels, and sub-tasks.
 
@@ -57,14 +66,15 @@ section of the sidebar.
 Columns are the vertical lanes within a board (for example *To Do*, *Doing*,
 *Done*).
 
-- **Add column** — type a title in the *Add a column…* field at the start of
-  the board and press **Enter**, or click **+ Add column**.
+- **Add column** — type a title in the *New column…* field in the **Columns**
+  section of the sidebar and press **Enter**, or click the green **plus** icon
+  button next to the field.
 - **Rename column** — double-click the column title to edit it inline, then
   press **Enter**.
-- **Move column** — use the **◀** (left) and **▶** (right) buttons in the
-  column header to reorder it relative to its neighbors.
-- **Delete column** — click the **✕** button in the column header. This removes
-  the column and all of its tasks.
+- **Move column** — use the teal **left arrow** and **right arrow** icon
+  buttons in the column header to reorder it relative to its neighbors.
+- **Delete column** — click the red **trash** icon button in the column
+  header. This removes the column and all of its tasks.
 
 ---
 
@@ -73,13 +83,10 @@ Columns are the vertical lanes within a board (for example *To Do*, *Doing*,
 Each card represents a single task.
 
 - **Add task** — type a title in the *Add a task…* field at the bottom of a
-  column and press **Enter** or click **+**.
+  column and press **Enter** or click the green **plus** icon button.
 - **Move task** — **drag and drop** a card into another column (or to a new
   position within the same column). Drop it where you want it to land.
-- **Delete task** — click the **✕** button on the card.
-
-Adding, moving, and deleting tasks are **undoable** (see
-[Keyboard Shortcuts](#8-keyboard-shortcuts)).
+- **Delete task** — click the red **trash** icon button on the card.
 
 ---
 
@@ -99,9 +106,10 @@ Tasks can also carry a **due date**, shown as `Due YYYY-MM-DD` on the card.
 - **Overdue highlighting** — if a task's due date is in the past, the due-date
   label is shown in **bold red** so it stands out.
 
-> **Note:** Priority and due date are set through the underlying task data. The
-> card always displays the current priority badge and, when present, the due
-> date (highlighted when overdue).
+- **Change priority** — click the orange **flag** icon button on the card and
+  choose a priority from the menu.
+- **Set due date** — click the blue **calendar** icon button on the card to
+  open the date picker, or clear the due date from the same popup.
 
 ---
 
@@ -113,14 +121,15 @@ Labels are colored tags scoped to the current board. They are managed in the
 ### Managing labels (sidebar)
 
 - **Create label** — type a name in the *New label…* field, pick a color from
-  the color dropdown, and click **+**.
-- **Delete label** — select a label in the list and click **✕ Delete label**.
+  the color dropdown, and click the green **plus** icon button.
+- **Delete label** — select a label in the list and click the red **trash**
+  icon button (Delete label).
 
 ### Applying labels to a card
 
-- **Assign label** — click the **🏷** button on a card to open a menu of the
-  board's labels that are not yet applied, then choose one. The label appears as
-  a colored **chip** on the card.
+- **Assign label** — click the purple **tag** icon button on a card to open a
+  menu of the board's labels that are not yet applied, then choose one. The
+  label appears as a colored **chip** on the card.
 - **Remove label** — click a label chip on the card to remove it.
 
 ---
@@ -130,10 +139,11 @@ Labels are colored tags scoped to the current board. They are managed in the
 Each card can have a list of sub-tasks for breaking work into smaller steps.
 
 - **Add sub-task** — type a title in the *Add subtask…* field on the card and
-  press **Enter** or click **+**.
+  press **Enter** or click the green **plus** icon button.
 - **Toggle complete** — check or uncheck a sub-task's checkbox to mark it done
   or not done.
-- **Delete sub-task** — click the **✕** button next to a sub-task.
+- **Delete sub-task** — click the red **trash** icon button next to a
+  sub-task.
 
 ---
 
@@ -146,10 +156,18 @@ combination of the following can be active at once:
 - **Priority** — choose a specific priority (or *Any priority*).
 - **Column** — choose a specific column (or *Any column*).
 - **Label** — choose a specific label (or *Any label*).
-- **Due date range** — tick the **Due** checkbox to enable the *from* and
-  *until* date pickers, then set the range.
-
-- **Clear filters** — click **Clear** to reset every filter and show all cards.
+- **Due date range** — type a date (`yyyy-MM-dd`) in the *from* and/or *until*
+  field, or click the blue **calendar** icon button next to a field to pick a
+  date from a calendar popup. A field only filters while it holds a valid
+  date.
+- **Clear filters** — click the **Clear** button (slate **X** icon) to reset
+  every filter and show all cards.
+- **View archive** — click the teal **archive box** icon button (right side of
+  the bar) to toggle the archived-tasks view. While active, the button appears
+  pressed with a highlighted background.
+- **Theme** — click the blue **monitor** icon button (far right of the bar) to
+  choose **System**, **Light**, or **Dark** (see
+  [Appearance](#10-appearance)).
 - Filters reset automatically whenever you switch boards.
 
 ---
@@ -168,13 +186,17 @@ combination of the following can be active at once:
 
 ## 10. Appearance (Dark Mode)
 
-PeKanBan follows your **Windows system theme** automatically:
+PeKanBan can follow your **Windows system theme** or use a fixed appearance.
+Use the **Theme** button (blue **monitor** icon) at the right end of the
+search & filter bar to choose:
 
-- If Windows is set to **Light**, PeKanBan uses a light appearance.
-- If Windows is set to **Dark**, PeKanBan uses a dark appearance.
+- **System** (blue **monitor** icon) — follow the Windows theme. If Windows is
+  set to **Light**, PeKanBan uses a light appearance; if **Dark**, a dark
+  appearance.
+- **Light** (amber **sun** icon) — always use the light appearance.
+- **Dark** (indigo **moon** icon) — always use the dark appearance.
 
-The theme is detected at startup, so you do not need to configure anything.
-Change your Windows appearance setting and relaunch PeKanBan to see the change.
+The choice is remembered between sessions.
 
 ---
 
@@ -239,11 +261,13 @@ at <https://www.gnu.org/licenses/gpl-3.0.html>.
 | I want to… | Do this |
 | --- | --- |
 | Create a board | Sidebar → *New board…* → **Enter** |
-| Add a column | *Add a column…* → **Enter** |
+| Add a column | Sidebar's *New column…* → **Enter** |
 | Add a task | Column's *Add a task…* → **Enter** |
 | Move a task | Drag the card to a new column/position |
 | Add a sub-task | Card's *Add subtask…* → **Enter** |
-| Tag a task | Click **🏷** on the card, pick a label |
+| Tag a task | Click the purple **tag** icon on the card, pick a label |
 | Find tasks | Use the search & filter bar |
+| Archive a task | Click the teal **archive box** icon on the card |
+| View archived tasks | Click the teal **archive box** icon in the filter bar |
 | Undo a change | **Ctrl+Z** |
 | Back up data | Copy the `~/.kanban/` folder |
