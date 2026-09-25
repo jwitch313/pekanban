@@ -17,7 +17,7 @@ from kanban.models.task import MAX_TITLE_LENGTH
 from kanban.services.database import Database
 
 #: Columns seeded on the starter board shown on first launch.
-DEFAULT_COLUMNS: list[str] = ["To-Do", "In-Progress", "Completed", "Blocked"]
+DEFAULT_COLUMNS: list[str] = ["To Do", "In Progress", "Completed", "Blocked"]
 
 #: Placeholder card shown on the starter board so the UI is never empty.
 PLACEHOLDER_TASK_TITLE = "Your Task"

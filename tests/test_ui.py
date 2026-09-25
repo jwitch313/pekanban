@@ -788,7 +788,7 @@ def test_window_move_column(window: MainWindow) -> None:
 def test_window_delete_column(window: MainWindow) -> None:
     board_id = window._current_board_id
     assert board_id is not None
-    window._on_column_added("In Progress")
+    window._on_column_added("Testing")
     board = window._service.get_board_full(board_id)
     assert board is not None
     column = board.columns[-1]
